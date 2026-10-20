@@ -150,11 +150,23 @@ Kurulum bitince terminali tamamen kapatıp yeniden aç (ortam değişkenleri yen
 
 ### Adım 2 — Gradle'ı JDK 17 ile çalıştır
 
-**PowerShell (tek seanslık, en hızlı yol):**
+**En kolay yol — otomatik bulan yardımcı betik (önerilen):**
 
 ```powershell
-# Klasör adını kendi kurulumuna göre düzelt:
-$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-17.0.13.11-hotspot"
+cd C:\Users\quantum\Desktop\mc-spor-modu-main
+powershell -ExecutionPolicy Bypass -File tools\build-jdk17.ps1 build
+```
+
+Betik, kurulu JDK'lar arasından 17 sürümünü kendisi bulur, `JAVA_HOME`'u yalnızca
+o oturum için ayarlar ve `gradlew.bat`'i çalıştırır. Başka Gradle görevi için de
+kullanılabilir: `... build-jdk17.ps1 runClient`, `... build-jdk17.ps1 --version`.
+
+**PowerShell (elle, tek seanslık):**
+
+```powershell
+# Bu örnekteki yol Adoptium Temurin 17.0.20.1 kurulumuna ait;
+# "Kurulu JDK'yı bulma" çıktındaki kendi yolunla değiştir:
+$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-17.0.20.101-hotspot"
 $env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
 
 cd C:\Users\quantum\Desktop\mc-spor-modu-main
@@ -165,14 +177,22 @@ cd C:\Users\quantum\Desktop\mc-spor-modu-main
 **CMD (tek seanslık):**
 
 ```cmd
-set JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-17.0.13.11-hotspot
+set JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-17.0.20.101-hotspot
 set PATH=%JAVA_HOME%\bin;%PATH%
 gradlew.bat build
 ```
 
-**Kalıcı çözüm:** Windows arama → "Sistem ortam değişkenlerini düzenle" →
-Ortam Değişkenleri → `JAVA_HOME` değişkenini JDK 17 klasörünü gösterecek şekilde
-düzenle → terminalleri kapatıp yeniden aç.
+**Kalıcı (tüm yeni terminaller için, PowerShell):**
+
+```powershell
+setx JAVA_HOME "C:\Program Files\Eclipse Adoptium\jdk-17.0.20.101-hotspot"
+```
+
+Sonra terminali kapatıp yeniden aç; `java -version` 17 göstermeli.
+
+**Kalıcı çözüm (grafik arayüzle):** Windows arama → "Sistem ortam değişkenlerini
+düzenle" → Ortam Değişkenleri → `JAVA_HOME` değişkenini JDK 17 klasörünü
+gösterecek şekilde düzenle → terminalleri kapatıp yeniden aç.
 
 **IntelliJ IDEA kullanıyorsan:** File → Settings → Build, Execution, Deployment
 → Build Tools → Gradle → **Gradle JVM** ayarını JDK 17 yap (proje JDK'sı yetmez,
