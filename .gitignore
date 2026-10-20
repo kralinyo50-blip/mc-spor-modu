@@ -1,0 +1,23 @@
+# Eclipse / IntelliJ
+.idea/
+*.iml
+*.ipr
+*.iws
+.eclipse/
+.settings/
+.bin/
+.classpath
+.project
+.vscode/
+
+# Gradle / Forge
+.gradle/
+build/
+out/
+run/
+run-data/
+src/generated/
+
+# OS / misc
+.DS_Store
+*.log

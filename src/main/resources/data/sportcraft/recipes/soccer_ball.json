@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "WLW",
+    "LBL",
+    "WLW"
+  ],
+  "key": {
+    "W": {
+      "item": "minecraft:white_wool"
+    },
+    "L": {
+      "item": "minecraft:leather"
+    },
+    "B": {
+      "item": "minecraft:ink_sac"
+    }
+  },
+  "result": {
+    "item": "sportcraft:soccer_ball",
+    "count": 1
+  }
+}

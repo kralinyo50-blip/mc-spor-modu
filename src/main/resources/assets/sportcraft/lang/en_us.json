@@ -1,0 +1,50 @@
+{
+  "itemGroup.sportcraft.sportcraft_tab": "SportCraft",
+
+  "block.sportcraft.artificial_turf": "Artificial Turf",
+  "block.sportcraft.field_line": "Field Line",
+  "block.sportcraft.red_goal": "Red Goal",
+  "block.sportcraft.blue_goal": "Blue Goal",
+
+  "item.sportcraft.soccer_ball": "Soccer Ball",
+  "item.sportcraft.whistle": "Referee Whistle",
+
+  "entity.sportcraft.soccer_ball": "Soccer Ball",
+
+  "key.categories.sportcraft": "SportCraft",
+  "key.sportcraft.match_menu": "Open Match Menu",
+
+  "team.sportcraft.red": "Red Team",
+  "team.sportcraft.blue": "Blue Team",
+  "team.sportcraft.spectator": "Spectator",
+
+  "match_state.sportcraft.idle": "Idle",
+  "match_state.sportcraft.running": "Running",
+  "match_state.sportcraft.paused": "Paused",
+  "match_state.sportcraft.finished": "Finished",
+
+  "gui.sportcraft.match_title": "SportCraft Match Management",
+  "gui.sportcraft.join_red": "Join Red Team",
+  "gui.sportcraft.join_blue": "Join Blue Team",
+  "gui.sportcraft.spectator": "Become Spectator",
+  "gui.sportcraft.start": "Start Match",
+  "gui.sportcraft.pause": "Pause",
+  "gui.sportcraft.resume": "Resume",
+  "gui.sportcraft.reset": "Reset Match",
+  "gui.sportcraft.minutes": "Minutes",
+  "gui.sportcraft.score_line": "Score %1$s : %2$s   |   %3$s",
+
+  "hud.sportcraft.charge": "Throw Power",
+
+  "command.sportcraft.joined": "You joined %s",
+  "command.sportcraft.unknown_team": "Unknown team: %s (use red, blue or spectator)",
+  "command.sportcraft.started": "Match started",
+  "command.sportcraft.paused": "Match paused",
+  "command.sportcraft.resumed": "Match resumed",
+  "command.sportcraft.reset": "Match has been reset",
+
+  "subtitles.sportcraft.kick": "Ball kicked",
+  "subtitles.sportcraft.bounce": "Ball bounces",
+  "subtitles.sportcraft.goal_horn": "Goal horn",
+  "subtitles.sportcraft.whistle": "Whistle blows"
+}

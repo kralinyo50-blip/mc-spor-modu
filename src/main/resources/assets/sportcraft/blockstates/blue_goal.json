@@ -1,0 +1,20 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "sportcraft:block/blue_goal",
+      "y": 0
+    },
+    "facing=east": {
+      "model": "sportcraft:block/blue_goal",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "sportcraft:block/blue_goal",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "sportcraft:block/blue_goal",
+      "y": 270
+    }
+  }
+}
