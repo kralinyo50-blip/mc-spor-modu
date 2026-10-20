@@ -79,6 +79,7 @@ Aynı tohum (`random.Random(4201)`) sayesinde çıktılar her çalıştırmada a
 | Belirti | Çözüm |
 |---|---|
 | `Unsupported class file major version 65` | **Java 21 ile Gradle 8.1.1 çalıştırılıyor.** Aşağıdaki özel bölümü uygula: JDK 17 kullan |
+| `ERROR: JAVA_HOME is set to an invalid directory` | JAVA_HOME'daki klasör adı makinede yok. Aşağıdaki "Kurulu JDK'yı bulma" adımını uygula; yol doğrudan `bin\java.exe` içeren klasörü göstermeli |
 | `Unsupported class file major version` (diğer) | Yanlış Java sürümü; JDK 17 kullan, `JAVA_HOME` değişkenini kontrol et |
 | `Could not open cp_settings generic class cache` | Başarısız derlemeden kalan bozuk önbellek; aşağıdaki önbellek temizleme adımını uygula |
 | İlk derleme ağ hatası | Maven/Gradle sunucularına erişim engellenmiş olabilir; VPN/proxy kontrol et |
@@ -111,6 +112,41 @@ Aynı tohum (`random.Random(4201)`) sayesinde çıktılar her çalıştırmada a
 JDK 17 zaten kurulu olabilir; şu klasörlere bak:
 `C:\Program Files\Eclipse Adoptium\`, `C:\Program Files\Java\`,
 `C:\Program Files\Microsoft\`.
+
+### Kurulu JDK'yı bulma (klasör adını bilmiyorsan)
+
+Klasör adındaki sürüm numarası her sürümde değişir. Tahmin etmek yerine tüm
+JDK kurulumlarını sürümleriyle listele:
+
+```powershell
+$roots = @(
+  "C:\Program Files\Eclipse Adoptium",
+  "C:\Program Files\Java",
+  "C:\Program Files\Microsoft",
+  "C:\Program Files\Amazon Corretto",
+  "C:\Program Files\Zulu",
+  "C:\Program Files\BellSoft"
+)
+foreach ($r in $roots) {
+  if (Test-Path $r) {
+    Get-ChildItem $r -Directory | ForEach-Object {
+      if (Test-Path "$($_.FullName)\bin\java.exe") {
+        $v = & "$($_.FullName)\bin\java.exe" -version 2>&1 | Select-Object -First 1
+        "$($_.FullName)   =>   $v"
+      }
+    }
+  }
+}
+```
+
+Çıktıda `17.x.x` yazan satırın tam yolunu kullan. Hiçbir sonuç dönmüyorsa JDK 17
+kurulu değildir; en hızlı kurulum:
+
+```powershell
+winget install EclipseAdoptium.Temurin.17.JDK
+```
+
+Kurulum bitince terminali tamamen kapatıp yeniden aç (ortam değişkenleri yeniden okunsun).
 
 ### Adım 2 — Gradle'ı JDK 17 ile çalıştır
 
