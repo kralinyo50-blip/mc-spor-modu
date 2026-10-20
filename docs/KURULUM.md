@@ -78,10 +78,101 @@ Aynı tohum (`random.Random(4201)`) sayesinde çıktılar her çalıştırmada a
 
 | Belirti | Çözüm |
 |---|---|
-| `Unsupported class file major version` | Yanlış Java sürümü; JDK 17 kullan, `JAVA_HOME` değişkenini kontrol et |
+| `Unsupported class file major version 65` | **Java 21 ile Gradle 8.1.1 çalıştırılıyor.** Aşağıdaki özel bölümü uygula: JDK 17 kullan |
+| `Unsupported class file major version` (diğer) | Yanlış Java sürümü; JDK 17 kullan, `JAVA_HOME` değişkenini kontrol et |
+| `Could not open cp_settings generic class cache` | Başarısız derlemeden kalan bozuk önbellek; aşağıdaki önbellek temizleme adımını uygula |
 | İlk derleme ağ hatası | Maven/Gradle sunucularına erişim engellenmiş olabilir; VPN/proxy kontrol et |
 | Oyun açılışında eksik doku uyarısı | `src/main/resources` yolunun derlemeye dahil olduğunu doğrula |
 | Tuş çalışmıyor | Seçenekler → Kontroller → SportCraft kategorisinden çakışan tuşu değiştir |
+
+## 6. `Unsupported class file major version 65` hatasının kesin çözümü (Windows)
+
+### Neden oluyor?
+
+- `major version 65` = **Java 21**. Makinedeki varsayılan `java` komutu JDK 21'e ait.
+- Projedeki Gradle 8.1.1, JVM olarak en fazla Java 20 destekler; Java 21 desteği
+  Gradle 8.5'te geldi. Gradle daha başlangıç aşamasında, `settings.gradle`'ı
+  bile derleyemeden düştüğü için bunu build script içinden engellemenin yolu yoktur.
+- Minecraft 1.20.1 ve Forge 47 zaten **JDK 17** gerektirir; yani JDK 17'yi
+  yalnız derleme için değil, `runClient` ve oyunun kendisi için de kullanacaksın.
+
+### Adım 1 — JDK 17 kur (yoksa)
+
+- https://adoptium.net/temurin/releases/?version=17 adresinden **Windows x64 .msi** indir.
+- Kurulum sihirbazında **"Set JAVA_HOME variable"** özelliğini işaretle.
+- Kurulum sonrası yeni bir terminal aç ve doğrula:
+
+```cmd
+"%JAVA_HOME%\bin\java" -version
+```
+
+Çıktıda `17.x.x` görmelisin (21 değil).
+
+JDK 17 zaten kurulu olabilir; şu klasörlere bak:
+`C:\Program Files\Eclipse Adoptium\`, `C:\Program Files\Java\`,
+`C:\Program Files\Microsoft\`.
+
+### Adım 2 — Gradle'ı JDK 17 ile çalıştır
+
+**PowerShell (tek seanslık, en hızlı yol):**
+
+```powershell
+# Klasör adını kendi kurulumuna göre düzelt:
+$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-17.0.13.11-hotspot"
+$env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
+
+cd C:\Users\quantum\Desktop\mc-spor-modu-main
+.\gradlew.bat --version   # "JVM" satırında 17 görünmeli
+.\gradlew.bat build
+```
+
+**CMD (tek seanslık):**
+
+```cmd
+set JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-17.0.13.11-hotspot
+set PATH=%JAVA_HOME%\bin;%PATH%
+gradlew.bat build
+```
+
+**Kalıcı çözüm:** Windows arama → "Sistem ortam değişkenlerini düzenle" →
+Ortam Değişkenleri → `JAVA_HOME` değişkenini JDK 17 klasörünü gösterecek şekilde
+düzenle → terminalleri kapatıp yeniden aç.
+
+**IntelliJ IDEA kullanıyorsan:** File → Settings → Build, Execution, Deployment
+→ Build Tools → Gradle → **Gradle JVM** ayarını JDK 17 yap (proje JDK'sı yetmez,
+bu ayırdır).
+
+### Adım 3 — Bozuk Gradle önbelleğini temizle
+
+Hata mesajındaki `cp_settings generic class cache` satırı, Java 21 ile başarısız
+denemeden kalan önbelleği gösterir. JDK 17'ye geçtikten sonra hata sürerse:
+
+```cmd
+rmdir /s /q "%USERPROFILE%\.gradle\caches\8.1.1"
+```
+
+PowerShell:
+
+```powershell
+Remove-Item -Recurse -Force "$env:USERPROFILE\.gradle\caches\8.1.1"
+```
+
+Sonra tekrar `.\gradlew.bat build` çalıştır. İlk derleme Forge/Minecraft
+bağımlılıklarını indireceği için birkaç dakika sürebilir.
+
+### Alternatif: Java 21'de kalmak istiyorsan
+
+JDK 17 kurmak istemiyorsan (önermiyoruz; 1.20.1 için yine de lazım olacak),
+Gradle wrapper'ını 8.8'e yükseltip derleme toolchain'inin foojay üzerinden
+otomatik JDK 17 indirmesini sağlayabilirsin:
+
+```properties
+# gradle/wrapper/gradle-wrapper.properties
+distributionUrl=https\://services.gradle.org/distributions/gradle-8.8-bin.zip
+```
+
+Bu yol ikincil tercihtir; resmi Forge 1.20.1 MDK'sının test edilmiş kombinasyonu
+**Gradle 8.1.1 + JDK 17** olarak kalır.
 
 ## Sürüm doğrulama tablosu
 
