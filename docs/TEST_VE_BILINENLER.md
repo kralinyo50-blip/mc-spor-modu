@@ -18,9 +18,17 @@ ve oyun içi çalıştırma **yapılamadı**. Bunun yerine aşağıdaki statik d
 6. **Doku üretim doğrulaması:** 9 PNG doğru boyut ve renk moduyla (RGB/RGBA) üretildi,
    görsel temas tek elden (aynı betik, sabit tohum) çıktı.
 7. **API uyumu:** Kullanılan tüm Forge/Minecraft API'leri 1.20.1 / Forge 47
-   hedefiyle manuel olarak kontrol edildi (SavedData.Factory imzası, JOML tabanlı
-   `Vector3f.rotationDegrees`, `EntityModel#renderToStack`, `RegisterGuiOverlaysEvent`,
-   `SimpleChannel` API'si, `CarpetBlock`, `EntityBlock` kalıpları vb.).
+   hedefiyle manuel olarak kontrol edildi (`SavedData.Factory` imzası ve
+   `save/load(CompoundTag, HolderLookup.Provider)` 1.20.1 imzaları, JOML tabanlı
+   `Vector3f.rotationDegrees`, `EntityModel#renderToStack` ve `Function<RenderType>`
+   constructor'ı, `RegisterGuiOverlaysEvent`, `SimpleChannel` API'si, `CarpetBlock`,
+   `EntityBlock` kalıpları, `isSecondaryUseActive`, `renderBackground(GuiGraphics)` vb.).
+   Denetim sırasında 1.19 tarzı tek parametreli `SavedData` imzaları ve yanlış
+   `EntityModel` constructor'ı tespit edilip 1.20.1'e göre düzeltildi.
+8. **Sözdizimi ayrıştırması:** 32 Java dosyası `javalang` ile ayrıştırıldı;
+   görünen 5 "hata"nın yalnızca ayrıştırıcının desteklemediği Java 17 yapıları
+   (pattern `instanceof`, arrow `switch`) olduğu kanıtlandı, geçici dönüşümle
+   tüm dosyalar temiz çıktı.
 
 ## Kendi makinenizde doğrulama
 

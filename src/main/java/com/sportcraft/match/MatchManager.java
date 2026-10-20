@@ -2,6 +2,7 @@ package com.sportcraft.match;
 
 import com.sportcraft.network.ModNetwork;
 import com.sportcraft.network.network_packet.MatchStateS2C;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -131,7 +132,7 @@ public class MatchManager extends SavedData {
     }
 
     @Override
-    public CompoundTag save(CompoundTag tag) {
+    public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
         tag.putString("State", state.name());
         tag.putInt("RedScore", redScore);
         tag.putInt("BlueScore", blueScore);
@@ -148,7 +149,7 @@ public class MatchManager extends SavedData {
         return tag;
     }
 
-    private static MatchManager load(CompoundTag tag) {
+    private static MatchManager load(CompoundTag tag, HolderLookup.Provider registries) {
         MatchManager manager = new MatchManager();
         manager.state = parseEnum(tag.getString("State"), MatchState.class, MatchState.IDLE);
         manager.redScore = tag.getInt("RedScore");

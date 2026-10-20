@@ -10,6 +10,7 @@ import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.model.geom.PartDefinition;
 import net.minecraft.client.model.geom.PartPose;
 import net.minecraft.client.model.geom.builders.CubeListBuilder;
+import net.minecraft.client.renderer.RenderType;
 
 /**
  * Single 8x8x8 pixel cube (half a block) textured with the soccer ball texture.
@@ -20,8 +21,8 @@ public class BallModel extends EntityModel<SoccerBallEntity> {
     private final ModelPart ball;
 
     public BallModel() {
-        super(createBodyLayer().bakeRoot());
-        this.ball = root.getChild("ball");
+        super(RenderType::entityCutoutNoCull);
+        this.ball = createBodyLayer().bakeRoot().getChild("ball");
     }
 
     public static LayerDefinition createBodyLayer() {
