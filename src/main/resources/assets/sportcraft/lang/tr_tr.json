@@ -1,0 +1,50 @@
+{
+  "itemGroup.sportcraft.sportcraft_tab": "SportCraft",
+
+  "block.sportcraft.artificial_turf": "Suni Çim",
+  "block.sportcraft.field_line": "Saha Çizgisi",
+  "block.sportcraft.red_goal": "Kırmızı Kale",
+  "block.sportcraft.blue_goal": "Mavi Kale",
+
+  "item.sportcraft.soccer_ball": "Futbol Topu",
+  "item.sportcraft.whistle": "Hakem Düdüğü",
+
+  "entity.sportcraft.soccer_ball": "Futbol Topu",
+
+  "key.categories.sportcraft": "SportCraft",
+  "key.sportcraft.match_menu": "Maç Menüsünü Aç",
+
+  "team.sportcraft.red": "Kırmızı Takım",
+  "team.sportcraft.blue": "Mavi Takım",
+  "team.sportcraft.spectator": "İzleyici",
+
+  "match_state.sportcraft.idle": "Bekliyor",
+  "match_state.sportcraft.running": "Devam Ediyor",
+  "match_state.sportcraft.paused": "Duraklatıldı",
+  "match_state.sportcraft.finished": "Bitti",
+
+  "gui.sportcraft.match_title": "SportCraft Maç Yönetimi",
+  "gui.sportcraft.join_red": "Kırmızı Takıma Katıl",
+  "gui.sportcraft.join_blue": "Mavi Takıma Katıl",
+  "gui.sportcraft.spectator": "İzleyici Ol",
+  "gui.sportcraft.start": "Maçı Başlat",
+  "gui.sportcraft.pause": "Duraklat",
+  "gui.sportcraft.resume": "Devam Et",
+  "gui.sportcraft.reset": "Maçı Sıfırla",
+  "gui.sportcraft.minutes": "Dakika",
+  "gui.sportcraft.score_line": "Skor %1$s : %2$s   |   %3$s",
+
+  "hud.sportcraft.charge": "Atış Gücü",
+
+  "command.sportcraft.joined": "%s takımına katıldın",
+  "command.sportcraft.unknown_team": "Bilinmeyen takım: %s (red, blue veya spectator kullan)",
+  "command.sportcraft.started": "Maç başladı",
+  "command.sportcraft.paused": "Maç duraklatıldı",
+  "command.sportcraft.resumed": "Maç devam ediyor",
+  "command.sportcraft.reset": "Maç sıfırlandı",
+
+  "subtitles.sportcraft.kick": "Topa vuruldu",
+  "subtitles.sportcraft.bounce": "Top sekiyor",
+  "subtitles.sportcraft.goal_horn": "Gol kornası",
+  "subtitles.sportcraft.whistle": "Düdük çalıyor"
+}

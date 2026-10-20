@@ -1,0 +1,47 @@
+package com.sportcraft.client;
+
+import com.sportcraft.SportCraft;
+import com.sportcraft.client.renderer.SoccerBallRenderer;
+import com.sportcraft.registry.ModBlocks;
+import com.sportcraft.registry.ModEntities;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.ItemBlockRenderTypes;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.EntityRenderersEvent;
+import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
+import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
+
+/**
+ * Client-only mod-bus registrations: entity renderer, key mapping, HUD overlay
+ * and the cutout render layer for the net / field line blocks.
+ */
+@Mod.EventBusSubscriber(modid = SportCraft.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+public class ClientSetup {
+
+    @SubscribeEvent
+    public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
+        event.registerEntityRenderer(ModEntities.SOCCER_BALL.get(), SoccerBallRenderer::new);
+    }
+
+    @SubscribeEvent
+    public static void registerKeyMappings(RegisterKeyMappingsEvent event) {
+        event.register(KeyBindings.OPEN_MATCH_MENU);
+    }
+
+    @SubscribeEvent
+    public static void registerOverlays(RegisterGuiOverlaysEvent event) {
+        event.registerAboveAll("match_hud", HudOverlay.MATCH_HUD);
+    }
+
+    @SubscribeEvent
+    public static void clientSetup(FMLClientSetupEvent event) {
+        event.enqueueWork(() -> {
+            ItemBlockRenderTypes.setRenderLayer(ModBlocks.RED_GOAL.get(), RenderType.cutout());
+            ItemBlockRenderTypes.setRenderLayer(ModBlocks.BLUE_GOAL.get(), RenderType.cutout());
+            ItemBlockRenderTypes.setRenderLayer(ModBlocks.FIELD_LINE.get(), RenderType.cutout());
+        });
+    }
+}

@@ -1,0 +1,42 @@
+{
+  "kick": {
+    "category": "player",
+    "subtitle": "subtitles.sportcraft.kick",
+    "sounds": [
+      {
+        "name": "minecraft:entity/player/attack/knockback1",
+        "stream": false
+      }
+    ]
+  },
+  "bounce": {
+    "category": "player",
+    "subtitle": "subtitles.sportcraft.bounce",
+    "sounds": [
+      {
+        "name": "minecraft:entity/slime/small1",
+        "stream": false
+      }
+    ]
+  },
+  "goal_horn": {
+    "category": "block",
+    "subtitle": "subtitles.sportcraft.goal_horn",
+    "sounds": [
+      {
+        "name": "minecraft:ui/toast/challenge_task_complete",
+        "stream": false
+      }
+    ]
+  },
+  "whistle": {
+    "category": "player",
+    "subtitle": "subtitles.sportcraft.whistle",
+    "sounds": [
+      {
+        "name": "minecraft:note/flute",
+        "stream": false
+      }
+    ]
+  }
+}
