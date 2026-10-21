@@ -39,7 +39,7 @@ public class SoccerBallRenderer extends EntityRenderer<SoccerBallEntity> {
     public SoccerBallRenderer(EntityRendererProvider.Context context) {
         super(context);
         this.model = new BallModel();
-        this.shadowRadius = 0.3F;
+        this.shadowRadius = 0.2F;
     }
 
     @Override
@@ -47,8 +47,10 @@ public class SoccerBallRenderer extends EntityRenderer<SoccerBallEntity> {
                        MultiBufferSource bufferSource, int packedLight) {
         ResourceLocation texture = getTextureLocation(entity);
         poseStack.pushPose();
-        // Sphere model is centred on the origin; align it with the 0.32 collision centre.
-        poseStack.translate(0.0D, 0.32D, 0.0D);
+        // Sphere model is centred on the origin; lift its centre to the
+        // collision-radius height, then shrink the native 0.5 sphere to the
+        // smaller physics radius so visual size matches the hitbox.
+        poseStack.translate(0.0D, SoccerBallEntity.BALL_RADIUS, 0.0D);
 
         float yaw = entity.getVisualYaw();
         float roll = entity.getVisualRoll(partialTick);
@@ -57,6 +59,8 @@ public class SoccerBallRenderer extends EntityRenderer<SoccerBallEntity> {
         // JOML 1.10.5 (MC 1.20.1): setAngleAxis takes radians; same pattern as BoatRenderer.
         poseStack.mulPose(new Quaternionf().setAngleAxis(
                 (float) Math.toRadians(roll), axisX, 0.0F, axisZ));
+        float scale = (float) (SoccerBallEntity.BALL_RADIUS / BallModel.NATIVE_RADIUS);
+        poseStack.scale(scale, scale, scale);
 
         VertexConsumer consumer = bufferSource.getBuffer(RenderType.entityCutoutNoCull(texture));
         model.renderToBuffer(poseStack, consumer, packedLight, OverlayTexture.NO_OVERLAY,

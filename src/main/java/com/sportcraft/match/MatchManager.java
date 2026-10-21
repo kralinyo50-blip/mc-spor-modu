@@ -92,15 +92,18 @@ public class MatchManager extends SavedData {
     private static final int KIT_KEEPER = 0x2E8B46;
     private static final int KIT_REFEREE = 0xF2D024;
     private static final int KIT_DARK = 0x1E1E24;
-    private static final int FOUL_MIN_GAP_TICKS = 30;
-    private static final double CLEAN_TACKLE_DIST_SQR = 3.24D;
+    private static final int FOUL_MIN_GAP_TICKS = 50;
+    // Clean tackle reach: ball within 2.4 blocks of the tackler is always fair,
+    // so crowded contests rarely turn into fouls.
+    private static final double CLEAN_TACKLE_DIST_SQR = 5.76D;
     private static final int PLAYER_SLIDE_COOLDOWN_TICKS = 25;
     // Long enough for the referee's run-in, talk and card scene before the
     // safety timeout releases the set piece; the kick itself ends it earlier.
     private static final int FREE_KICK_DURATION_TICKS = 280;
     private static final double FREE_KICK_WALL_DISTANCE = 4.2D;
     private static final double FREE_KICK_WALL_SPACING = 0.95D;
-    private static final double BALL_REST_LIFT = 0.32D;
+    // Keep the parked free-kick ball exactly at its resting centre height.
+    private static final double BALL_REST_LIFT = SoccerBallEntity.BALL_RADIUS;
 
     public MatchManager() {
         this.remainingSeconds = settings.getHalfLengthSeconds();
@@ -576,7 +579,9 @@ public class MatchManager extends SavedData {
         if (tacklerTeam == Team.SPECTATOR) {
             return;
         }
-        AABB area = tackler.getBoundingBox().inflate(1.2D);
+        // Tight contact box: only an actual body collision while the ball is
+        // out of reach counts as a foul, not nearby presence.
+        AABB area = tackler.getBoundingBox().inflate(0.8D);
         for (LivingEntity other : level.getEntitiesOfClass(LivingEntity.class, area)) {
             if (other == tackler || !other.isAlive()) {
                 continue;

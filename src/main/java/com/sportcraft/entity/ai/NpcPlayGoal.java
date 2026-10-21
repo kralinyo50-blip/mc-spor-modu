@@ -54,10 +54,10 @@ public class NpcPlayGoal extends Goal {
     private static final int REPATH_INTERVAL = 12;
     private static final int KICK_LOCK_TICKS = 14;
 
-    private static final double TACKLE_TRIGGER_DIST_SQR = 9.0D;
+    private static final double TACKLE_TRIGGER_DIST_SQR = 7.0D;
     private static final double TACKLE_BALL_REACH_SQR = 2.25D;
     private static final double PRESSURE_RADIUS = 4.0D;
-    private static final int TACKLE_COOLDOWN_TICKS = 50;
+    private static final int TACKLE_COOLDOWN_TICKS = 90;
     private static final int DRIBBLE_BOUNCE_INTERVAL = 10;
     private static final int CROSSOVER_INTERVAL = 55;
     private static final double BASKETBALL_SHOT_DIST_SQR = 64.0D;
@@ -230,7 +230,13 @@ public class NpcPlayGoal extends Goal {
         if (npc.distanceToSqr(ball) >= TACKLE_TRIGGER_DIST_SQR) {
             return;
         }
-        if (nearestOpponentWithin(level, manager, ball.position(), 3.5D) == null) {
+        LivingEntity rival = nearestOpponentWithin(level, manager, ball.position(), 2.75D);
+        if (rival == null) {
+            return;
+        }
+        // No reckless lunges: only commit when the bot can realistically reach
+        // the ball first, which removes most whistle-heavy mistimed slides.
+        if (npc.distanceToSqr(ball) > rival.distanceToSqr(ball) + 1.5D) {
             return;
         }
         Vec3 lunge = ball.position().subtract(npc.position());
