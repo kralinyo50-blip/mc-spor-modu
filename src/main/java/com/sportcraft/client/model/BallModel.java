@@ -13,13 +13,20 @@ import net.minecraft.client.model.geom.builders.PartDefinition;
 import net.minecraft.client.renderer.RenderType;
 
 /**
- * Low-poly sphere built from seven stacked pixel bands, replacing the old
- * half-block cube so the ball reads as round like the reference mod.
+ * Near-perfect 16-pixel sphere built from sixteen one-pixel-tall bands.
+ * Instead of hand-picked band widths, each band's half-size is derived from
+ * the circle equation {@code half = round(sqrt(r^2 - dy^2))} with an 8-pixel
+ * radius, so the silhouette reads as a genuinely round ball from every
+ * angle (the previous seven-band version looked visibly faceted).
  *
- * <p>Band sizes (diameter in pixels) from bottom to top: 6, 12, 14, 16, 14,
- * 12, 6 — centred on the origin so the renderer only translates the centre.</p>
+ * <p>The model spans a full block (16 px) centred on the origin; the renderer
+ * aligns that centre with the smaller physics collision box. Texture size is
+ * 64x64 to give the denser bands enough UV resolution.</p>
  */
 public class BallModel extends EntityModel<SoccerBallEntity> {
+
+    public static final int BAND_COUNT = 16;
+    public static final int RADIUS_PIXELS = 8;
 
     private final ModelPart ball;
 
@@ -34,21 +41,17 @@ public class BallModel extends EntityModel<SoccerBallEntity> {
         PartDefinition ballPart = rootPart.addOrReplaceChild("ball",
                 CubeListBuilder.create(), PartPose.ZERO);
 
-        // Each band: half-size, y start, height.
-        addBand(ballPart, 3, -8, 2);
-        addBand(ballPart, 6, -6, 2);
-        addBand(ballPart, 7, -4, 2);
-        addBand(ballPart, 8, -2, 4);
-        addBand(ballPart, 7, 2, 2);
-        addBand(ballPart, 6, 4, 2);
-        addBand(ballPart, 3, 6, 2);
-        return LayerDefinition.create(mesh, 64, 32);
-    }
-
-    private static void addBand(PartDefinition parent, int half, int y, int height) {
-        CubeListBuilder cubes = CubeListBuilder.create().texOffs(0, 0)
-                .addBox(-half, y, -half, half * 2, height, half * 2);
-        parent.addOrReplaceChild("band_" + y + "_" + half, cubes, PartPose.ZERO);
+        for (int band = 0; band < BAND_COUNT; band++) {
+            // Distance of the band's centre from the sphere's equator.
+            double centerOffset = band - (BAND_COUNT / 2.0D) + 0.5D;
+            double inside = (double) RADIUS_PIXELS * RADIUS_PIXELS - centerOffset * centerOffset;
+            int half = Math.max(1, (int) Math.round(Math.sqrt(Math.max(0.0D, inside))));
+            int y = -RADIUS_PIXELS + band;
+            CubeListBuilder cubes = CubeListBuilder.create().texOffs(0, 0)
+                    .addBox(-half, y, -half, half * 2, 1, half * 2);
+            ballPart.addOrReplaceChild("band_" + band, cubes, PartPose.ZERO);
+        }
+        return LayerDefinition.create(mesh, 64, 64);
     }
 
     @Override

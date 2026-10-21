@@ -17,6 +17,13 @@ public final class KeyBindings {
             GLFW.GLFW_KEY_V,
             CATEGORY);
 
+    public static final KeyMapping SLIDE_TACKLE = new KeyMapping(
+            "key." + SportCraft.MOD_ID + ".slide_tackle",
+            KeyConflictContext.IN_GAME,
+            InputConstants.Type.KEYSYM,
+            GLFW.GLFW_KEY_C,
+            CATEGORY);
+
     private KeyBindings() {
     }
 }

@@ -24,6 +24,7 @@
 
   "key.categories.sportcraft": "SportCraft",
   "key.sportcraft.match_menu": "Maç Menüsünü Aç",
+  "key.sportcraft.slide_tackle": "Kayarak Müdahale",
 
   "team.sportcraft.red": "Ev Sahibi",
   "team.sportcraft.blue": "Deplasman",
@@ -83,6 +84,12 @@
   "message.sportcraft.scoreboard_not_running": "Şu anda aktif maç yok",
   "message.sportcraft.yellow_card": "%s sarı kart gördü",
   "message.sportcraft.red_card": "%s kırmızı kart gördü",
+  "message.sportcraft.teams_ready": "Takımlar hazır: Ev %1$s, Deplasman %2$s — Hakem: %3$s",
+  "message.sportcraft.referee_present": "sahada",
+  "message.sportcraft.referee_missing": "yok",
+  "message.sportcraft.referee_kickoff": "Hakem: Maç başladı! İyi oyunlar.",
+  "message.sportcraft.referee_goal": "Hakem: GOL! %1$s skoru buldu. Skor %2$s - %3$s",
+  "message.sportcraft.referee_foul": "Hakem: Faul! %1$s lehine serbest vuruş.",
 
   "command.sportcraft.joined": "%s takımına katıldın",
   "command.sportcraft.unknown_team": "Bilinmeyen takım: %s (red, blue veya spectator kullan)",

@@ -33,6 +33,7 @@ public class ClientSetup {
     @SubscribeEvent
     public static void registerKeyMappings(RegisterKeyMappingsEvent event) {
         event.register(KeyBindings.OPEN_MATCH_MENU);
+        event.register(KeyBindings.SLIDE_TACKLE);
     }
 
     @SubscribeEvent

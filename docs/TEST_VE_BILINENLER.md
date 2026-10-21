@@ -1,5 +1,42 @@
 # Test Durumu ve Bilinen Sınırlamalar
 
+## v5: Hakem, taktiksel AI, kayma müdahalesi, yuvarlak top, basketbol taşıması
+
+Kullanıcı geri bildirimine göre yedi maddelik geliştirme:
+
+1. **Daha stratejik maçlar.** Baskı altındaki bot artık körlemesine şut
+   atmıyor: 4 blok içinde rakip varken ileride boş takım arkadaşı varsa ona
+   yumuşak pas çıkar; kaleci topu uzaktan güçlü uzaklaştırır. Tek kovalayıcı
+   ve diziliş disiplini korunur.
+2. **Kale üstüne çıkan top giderildi.** Çok bloklu kalede crossbar/üst ağ ve
+   basketbol panyası katı bloklardır; top bunların üstünde dinlenirse
+   `rescueFromGoalRoof` onu 25 tick soğumalı hamleyle saha merkezine geri
+   fırlatır (kale direği, kale ağı, beyaz beton panya kontrolü).
+3. **Hakem eklendi.** Her maçta orta nokta yanında sarı formalı, "Hakem"
+   etiketli görünür bir NPC doğar (`RefereeGoal`). Maçı çizgiden takip eder;
+   başlama, gol ve faullerde düdük çalar, kolunu kaldırır ve sohbete karar
+   duyurusu düşer. Kararlar yalnızca `MatchManager` olaylarından türer.
+4. **Animasyonlu kayarak müdahale.** Botlar topa yakın rakip varken kayma
+   hamlesi yapar; oyuncular **C** tuşu ile kayar. Yatık gövde/uzanan bacak
+   pozu `NpcPlayerModel` ile senkronize veri üzerinden oynar, toz parçacığı
+   eşlik eder. Temas faulle sonuçlanabilir (top temiz erişimde değilse),
+   faulde top serbest vuruş için yavaşlatılır.
+5. **Top tam yuvarlak.** `BallModel` 7 bant yerine 16 adet tek piksellik
+   bant kullanır; her bant yarıçapı `sqrt(r²-dy²)` çember denkleminden gelir,
+   doku 64x64'e çıkarıldı.
+6. **1v1 eksik bot bug'ı giderildi.** Kök nedenlerden biri kalıcı takım
+   atamalarının yeni saha kurulunca bot slotu yemesiydi; `onFieldBuilt`
+   artık takımları sıfırlar. Doğumlar çarpışmasız nokta denemesi ve
+   `addFreshEntity` geri bildirimi ile yapılır; operatöre gerçek doğan
+   oyuncu sayıları özet mesajıyla bildirilir.
+7. **Basketbolda dribble ve çalım.** Topu alan kovalayıcı bot onu sektire
+   sektire potaya taşır, yakın rakipte yana crossover atar ve atış
+   mesafesinde yaylı şut çıkar (`shootAt`). Pompalayan kol animasyonu
+   `isDribbling` verisiyle oynar.
+
+Ağ: yeni `SlideTackleC2S` paketi için kanal protokolü "3"e yükseltildi;
+paketin taşıyacağı veri yoktur, tüm yetki sunucudadır.
+
 ## v4: Fizik ve AI düzeltmeleri, rollü bot dizilişi, basketbol sahası
 
 Kullanıcı test geri bildirimine göre:

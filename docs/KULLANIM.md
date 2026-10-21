@@ -22,6 +22,8 @@
 | Pas / yumuşak vuruş | Topa **sağ tık** |
 | Topu geri alma | **Eğil (Shift) + sağ tık** |
 | Atış gücü | Sağ tık ne kadar uzun basılı tutulursa HUD'daki güç çubuğu o kadar dolar |
+| Kayarak müdahale | **C tuşu**; bakış yönüne kayma hamlesi, faul olabilir |
+| Maç ekranı | **V tuşu** veya Hakem Düdüğü |
 
 Top yerçekimi ile düşer, zeminde seker ve sürtünmeyle yavaşlar; duvarlara
 çarpınca doğru eksende sekerek geri döner.

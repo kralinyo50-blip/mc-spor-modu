@@ -1,10 +1,12 @@
 package com.sportcraft.match;
 
+import com.sportcraft.entity.SoccerBallEntity;
 import com.sportcraft.entity.SoccerNpcEntity;
 import com.sportcraft.network.ModNetwork;
 import com.sportcraft.network.network_packet.MatchStateS2C;
 import com.sportcraft.registry.ModEntities;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -13,6 +15,8 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.DyeableLeatherItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -54,11 +58,30 @@ public class MatchManager extends SavedData {
     private int tickCounter;
     private final Set<UUID> npcIds = new HashSet<>();
 
+    // Referee decision inputs. Fouls are reported by tackle logic and consumed
+    // by RefereeGoal; the tick stamp makes the stream strictly de-duplicable.
+    private int lastFoulTick = Integer.MIN_VALUE / 2;
+    private Team lastFoulTeam = Team.RED;
+    private Vec3 lastFoulPos = Vec3.ZERO;
+    // Real-player slide tackles: cooldown gate plus the active contact window.
+    private final Map<UUID, Integer> playerSlideCooldownUntil = new HashMap<>();
+    private final Map<UUID, Integer> playerSlideActiveUntil = new HashMap<>();
+
+    /** Outcome of a bot population run, used for the operator summary message. */
+    public record PopulateResult(int redBots, int blueBots, int redPlayers,
+                                 int bluePlayers, boolean referee) {
+    }
+
     private static final String[] HOME_NAMES = {"Selim", "Umut", "Mert", "Emre", "Kaan", "Arda", "Deniz"};
     private static final String[] AWAY_NAMES = {"Can", "Burak", "Onur", "Yusuf", "Kerem", "Volkan", "Serkan"};
     private static final int KIT_RED = 0xC02626;
     private static final int KIT_BLUE = 0x274FC0;
     private static final int KIT_KEEPER = 0x2E8B46;
+    private static final int KIT_REFEREE = 0xF2D024;
+    private static final int KIT_DARK = 0x1E1E24;
+    private static final int FOUL_MIN_GAP_TICKS = 30;
+    private static final double CLEAN_TACKLE_DIST_SQR = 3.24D;
+    private static final int PLAYER_SLIDE_COOLDOWN_TICKS = 25;
 
     public MatchManager() {
         this.remainingSeconds = settings.getHalfLengthSeconds();
@@ -73,6 +96,7 @@ public class MatchManager extends SavedData {
 
     /** Called once per server tick from the Forge event handler. */
     public void serverTick(MinecraftServer server) {
+        tickPlayerSlides(server);
         if (state != MatchState.RUNNING) {
             return;
         }
@@ -121,6 +145,11 @@ public class MatchManager extends SavedData {
         this.fieldCenter = center.immutable();
         this.fieldBuilt = true;
         settings.setFieldSize(size);
+        // A freshly built stadium means fresh teams: stale assignments from a
+        // previous match would otherwise silently eat bot slots (the root
+        // cause of the "one bot missing in 1v1" report).
+        teams.clear();
+        keepers.clear();
         setDirty();
     }
 
@@ -220,17 +249,23 @@ public class MatchManager extends SavedData {
     /**
      * Fills both teams up to the configured team size with AI bots. Real,
      * online players already on a team reduce the number of bots spawned.
+     * One referee bot is always added. The returned summary lets the caller
+     * prove every requested slot was actually spawned.
      */
-    public void populateNpcs(ServerLevel level, MinecraftServer server) {
+    public PopulateResult populateNpcs(ServerLevel level, MinecraftServer server) {
         clearNpcs(level);
         if (fieldCenter == null) {
-            return;
+            return new PopulateResult(0, 0, 0, 0, false);
         }
         ensureKickoffBall(level);
         int target = settings.getTeamSize();
-        spawnTeamNpcs(level, Team.RED, Math.max(0, target - countRealPlayers(server, Team.RED)));
-        spawnTeamNpcs(level, Team.BLUE, Math.max(0, target - countRealPlayers(server, Team.BLUE)));
+        int redReal = countRealPlayers(server, Team.RED);
+        int blueReal = countRealPlayers(server, Team.BLUE);
+        int redBots = spawnTeamNpcs(level, Team.RED, Math.max(0, target - redReal));
+        int blueBots = spawnTeamNpcs(level, Team.BLUE, Math.max(0, target - blueReal));
+        boolean referee = spawnReferee(level);
         setDirty();
+        return new PopulateResult(redBots, blueBots, redReal, blueReal, referee);
     }
 
     /** Spawns the configured ball type at the centre spot when the pitch has none. */
@@ -263,17 +298,18 @@ public class MatchManager extends SavedData {
         return count;
     }
 
-    private void spawnTeamNpcs(ServerLevel level, Team team, int count) {
+    private int spawnTeamNpcs(ServerLevel level, Team team, int count) {
         if (count <= 0) {
-            return;
+            return 0;
         }
         BlockPos goal = getGoalPosition(team);
         if (goal == null) {
-            return;
+            return 0;
         }
         Formation formation = team == Team.RED
                 ? settings.getHomeFormation() : settings.getAwayFormation();
         String[] namePool = team == Team.RED ? HOME_NAMES : AWAY_NAMES;
+        int spawned = 0;
         for (int i = 0; i < count; i++) {
             boolean keeper = i == 0;
             int number = i + 1;
@@ -281,9 +317,10 @@ public class MatchManager extends SavedData {
                     formation, team, i, settings.getTeamSize(), keeper);
             SoccerNpcEntity npc = ModEntities.SOCCER_NPC.get().create(level);
             if (npc == null) {
-                return;
+                continue;
             }
-            npc.moveTo(home.x, home.y, home.z, 0.0F, 0.0F);
+            Vec3 safe = safeSpawnPosition(level, home);
+            npc.moveTo(safe.x, safe.y, safe.z, 0.0F, 0.0F);
             npc.setSportTeam(team);
             npc.setKeeper(keeper);
             npc.setSquadIndex(i);
@@ -291,9 +328,64 @@ public class MatchManager extends SavedData {
             npc.setCustomName(Component.literal(number + " " + namePool[(number - 1) % namePool.length]));
             npc.setCustomNameVisible(true);
             equipKit(npc, team, keeper);
-            level.addFreshEntity(npc);
-            npcIds.add(npc.getUUID());
+            // addFreshEntity can reject a spawn (overlap, world border); never
+            // track a ghost UUID and keep filling the remaining slots.
+            if (level.addFreshEntity(npc)) {
+                npcIds.add(npc.getUUID());
+                spawned++;
+            }
         }
+        return spawned;
+    }
+
+    /** Spawns the single referee beside the centre spot. */
+    private boolean spawnReferee(ServerLevel level) {
+        if (fieldCenter == null) {
+            return false;
+        }
+        SoccerNpcEntity npc = ModEntities.SOCCER_NPC.get().create(level);
+        if (npc == null) {
+            return false;
+        }
+        Vec3 preferred = Vec3.atBottomCenterOf(fieldCenter).add(3.5D, 0.0D, 0.0D);
+        Vec3 safe = safeSpawnPosition(level, preferred);
+        npc.moveTo(safe.x, safe.y, safe.z, 0.0F, 0.0F);
+        npc.setReferee(true);
+        npc.setPersistenceRequired();
+        npc.setCustomName(Component.literal("Hakem"));
+        npc.setCustomNameVisible(true);
+        equipRefereeKit(npc);
+        if (!level.addFreshEntity(npc)) {
+            return false;
+        }
+        npcIds.add(npc.getUUID());
+        return true;
+    }
+
+    /**
+     * Returns the preferred position when it is clear, otherwise the first
+     * collision-free point on expanding rings around it, so a bot never gets
+     * spawned inside a goal post, hoop pole or another entity.
+     */
+    private Vec3 safeSpawnPosition(ServerLevel level, Vec3 preferred) {
+        if (level.noCollision(npcBox(preferred))) {
+            return preferred;
+        }
+        for (int radius = 1; radius <= 4; radius++) {
+            for (int angle = 0; angle < 8; angle++) {
+                double radians = Math.PI * 2.0D * angle / 8.0D;
+                Vec3 candidate = preferred.add(Math.cos(radians) * radius, 0.0D, Math.sin(radians) * radius);
+                if (level.noCollision(npcBox(candidate))) {
+                    return candidate;
+                }
+            }
+        }
+        return preferred;
+    }
+
+    private AABB npcBox(Vec3 position) {
+        return new AABB(position.x - 0.3D, position.y, position.z - 0.3D,
+                position.x + 0.3D, position.y + 1.8D, position.z + 0.3D);
     }
 
     private void equipKit(SoccerNpcEntity npc, Team team, boolean keeper) {
@@ -310,6 +402,160 @@ public class MatchManager extends SavedData {
         npc.setDropChance(EquipmentSlot.CHEST, 0.0F);
         npc.setDropChance(EquipmentSlot.LEGS, 0.0F);
         npc.setDropChance(EquipmentSlot.FEET, 0.0F);
+    }
+
+    private void equipRefereeKit(SoccerNpcEntity npc) {
+        ItemStack chest = new ItemStack(Items.LEATHER_CHESTPLATE);
+        ((DyeableLeatherItem) chest.getItem()).setColor(chest, KIT_REFEREE);
+        ItemStack legs = new ItemStack(Items.LEATHER_LEGGINGS);
+        ((DyeableLeatherItem) legs.getItem()).setColor(legs, KIT_DARK);
+        ItemStack boots = new ItemStack(Items.LEATHER_BOOTS);
+        ((DyeableLeatherItem) boots.getItem()).setColor(boots, KIT_DARK);
+        npc.setItemSlot(EquipmentSlot.CHEST, chest);
+        npc.setItemSlot(EquipmentSlot.LEGS, legs);
+        npc.setItemSlot(EquipmentSlot.FEET, boots);
+        npc.setDropChance(EquipmentSlot.CHEST, 0.0F);
+        npc.setDropChance(EquipmentSlot.LEGS, 0.0F);
+        npc.setDropChance(EquipmentSlot.FEET, 0.0F);
+    }
+
+    // ------------------------------------------------------------------
+    // Fouls and player slide tackles
+    // ------------------------------------------------------------------
+
+    /** Resolves which match team a living participant belongs to. */
+    public Team teamOf(LivingEntity entity) {
+        if (entity instanceof SoccerNpcEntity npc) {
+            return npc.isReferee() ? Team.SPECTATOR : npc.getSportTeam();
+        }
+        if (entity instanceof Player player) {
+            return getTeam(player.getUUID());
+        }
+        return Team.SPECTATOR;
+    }
+
+    /**
+     * Records a foul in favour of {@code favoured} (the tackled side). Gap
+     * throttling prevents several contacts in the same slide from turning
+     * into a spam of whistle decisions.
+     */
+    public void reportFoul(ServerLevel level, Team favoured, Vec3 pos) {
+        if (favoured == Team.SPECTATOR) {
+            return;
+        }
+        int now = level.getServer().getTickCount();
+        if (now - lastFoulTick < FOUL_MIN_GAP_TICKS) {
+            return;
+        }
+        lastFoulTick = now;
+        lastFoulTeam = favoured;
+        lastFoulPos = pos;
+        setDirty();
+    }
+
+    /**
+     * Checks an active slide for illegal contact: an opposing participant
+     * inside the lunge box while the ball is outside clean tackling reach.
+     * The ball is slowed for the resulting free kick.
+     */
+    public void checkTackleFoul(ServerLevel level, LivingEntity tackler, SoccerBallEntity ball) {
+        Team tacklerTeam = teamOf(tackler);
+        if (tacklerTeam == Team.SPECTATOR) {
+            return;
+        }
+        AABB area = tackler.getBoundingBox().inflate(1.2D);
+        for (LivingEntity other : level.getEntitiesOfClass(LivingEntity.class, area)) {
+            if (other == tackler || !other.isAlive()) {
+                continue;
+            }
+            Team otherTeam = teamOf(other);
+            if (otherTeam == Team.SPECTATOR || otherTeam == tacklerTeam) {
+                continue;
+            }
+            if (ball != null && tackler.distanceToSqr(ball) <= CLEAN_TACKLE_DIST_SQR) {
+                continue;
+            }
+            reportFoul(level, otherTeam, tackler.position());
+            if (ball != null) {
+                ball.setDeltaMovement(ball.getDeltaMovement().scale(0.25D));
+            }
+            return;
+        }
+    }
+
+    /**
+     * Applies a real player's slide tackle: a forward lunge with the same
+     * cooldown/contact rules as the bot version. Returns false while the
+     * cooldown is active so the client packet gets no effect.
+     */
+    public boolean tryPlayerSlide(ServerLevel level, ServerPlayer player) {
+        if (fieldCenter == null) {
+            return false;
+        }
+        int now = player.server.getTickCount();
+        if (playerSlideCooldownUntil.getOrDefault(player.getUUID(), Integer.MIN_VALUE / 2) > now) {
+            return false;
+        }
+        Vec3 flat = new Vec3(player.getLookAngle().x, 0.0D, player.getLookAngle().z);
+        if (flat.lengthSqr() < 1.0E-6D) {
+            return false;
+        }
+        flat = flat.normalize();
+        player.setDeltaMovement(flat.x * 1.35D, -0.1D, flat.z * 1.35D);
+        player.hasImpulse = true;
+        playerSlideCooldownUntil.put(player.getUUID(), now + PLAYER_SLIDE_COOLDOWN_TICKS);
+        playerSlideActiveUntil.put(player.getUUID(),
+                now + SoccerNpcEntity.TACKLE_DURATION_TICKS);
+        level.sendParticles(ParticleTypes.CLOUD, player.getX(), player.getY() + 0.1D, player.getZ(),
+                8, 0.3D, 0.1D, 0.3D, 0.02D);
+        return true;
+    }
+
+    private void tickPlayerSlides(MinecraftServer server) {
+        if (playerSlideActiveUntil.isEmpty()) {
+            return;
+        }
+        ServerLevel level = server.overworld();
+        int now = server.getTickCount();
+        SoccerBallEntity ball = findNearestBall(level);
+        playerSlideActiveUntil.entrySet().removeIf(entry -> {
+            if (entry.getValue() <= now) {
+                return true;
+            }
+            if (server.getPlayerList().getPlayer(entry.getKey()) instanceof ServerPlayer player) {
+                checkTackleFoul(level, player, ball);
+            }
+            return false;
+        });
+    }
+
+    private SoccerBallEntity findNearestBall(ServerLevel level) {
+        if (fieldCenter == null) {
+            return null;
+        }
+        AABB searchArea = new AABB(fieldCenter).inflate(64.0D);
+        SoccerBallEntity nearest = null;
+        double nearestDistance = Double.MAX_VALUE;
+        for (SoccerBallEntity candidate : level.getEntitiesOfClass(SoccerBallEntity.class, searchArea)) {
+            double distance = candidate.distanceToSqr(Vec3.atCenterOf(fieldCenter));
+            if (distance < nearestDistance) {
+                nearestDistance = distance;
+                nearest = candidate;
+            }
+        }
+        return nearest;
+    }
+
+    public int getLastFoulTick() {
+        return lastFoulTick;
+    }
+
+    public Team getLastFoulTeam() {
+        return lastFoulTeam;
+    }
+
+    public Vec3 getLastFoulPos() {
+        return lastFoulPos;
     }
 
     public void broadcast(MinecraftServer server) {

@@ -6,6 +6,7 @@ import com.sportcraft.network.network_packet.JoinTeamC2S;
 import com.sportcraft.network.network_packet.MatchControlC2S;
 import com.sportcraft.network.network_packet.MatchSettingsC2S;
 import com.sportcraft.network.network_packet.MatchStateS2C;
+import com.sportcraft.network.network_packet.SlideTackleC2S;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
@@ -17,8 +18,8 @@ import net.minecraftforge.network.simple.SimpleChannel;
  */
 public final class ModNetwork {
 
-    // Bumped to "2" together with the expanded MatchStateS2C / JoinTeamC2S payloads.
-    private static final String PROTOCOL_VERSION = "2";
+    // "3" adds SlideTackleC2S; client and server accept only this exact version.
+    private static final String PROTOCOL_VERSION = "3";
 
     public static SimpleChannel CHANNEL;
 
@@ -59,6 +60,11 @@ public final class ModNetwork {
                     .encoder(BuildFieldC2S::encode)
                     .decoder(BuildFieldC2S::new)
                     .consumerMainThread(BuildFieldC2S::handle)
+                    .add();
+            CHANNEL.messageBuilder(SlideTackleC2S.class, id++)
+                    .encoder(SlideTackleC2S::encode)
+                    .decoder(SlideTackleC2S::new)
+                    .consumerMainThread(SlideTackleC2S::handle)
                     .add();
         });
     }
