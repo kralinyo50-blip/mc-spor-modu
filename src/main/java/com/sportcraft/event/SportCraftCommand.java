@@ -65,6 +65,10 @@ public class SportCraftCommand {
 
     private static int startMatch(CommandSourceStack source, int seconds) {
         MatchManager manager = MatchManager.get(source.getLevel().getServer().overworld());
+        if (!manager.isFieldBuilt()) {
+            source.sendFailure(Component.translatable("command.sportcraft.no_field"));
+            return 0;
+        }
         manager.start(seconds);
         manager.broadcast(source.getServer());
         source.sendSuccess(() -> Component.translatable("command.sportcraft.started"), true);

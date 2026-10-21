@@ -1,8 +1,10 @@
 package com.sportcraft.registry;
 
 import com.sportcraft.SportCraft;
-import com.sportcraft.item.SoccerBallItem;
+import com.sportcraft.item.CardItem;
+import com.sportcraft.item.SportsBallItem;
 import com.sportcraft.item.WhistleItem;
+import com.sportcraft.match.BallType;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
@@ -16,10 +18,19 @@ public class ModItems {
             DeferredRegister.create(ForgeRegistries.ITEMS, SportCraft.MOD_ID);
 
     public static final RegistryObject<Item> SOCCER_BALL = ITEMS.register("soccer_ball",
-            () -> new SoccerBallItem(new Item.Properties().stacksTo(16)));
+            () -> new SportsBallItem(new Item.Properties().stacksTo(16), BallType.SOCCER));
+
+    public static final RegistryObject<Item> BASKETBALL = ITEMS.register("basketball",
+            () -> new SportsBallItem(new Item.Properties().stacksTo(16), BallType.BASKETBALL));
 
     public static final RegistryObject<Item> WHISTLE = ITEMS.register("whistle",
             () -> new WhistleItem(new Item.Properties().stacksTo(1)));
+
+    public static final RegistryObject<Item> YELLOW_CARD = ITEMS.register("yellow_card",
+            () -> new CardItem(new Item.Properties().stacksTo(1), false));
+
+    public static final RegistryObject<Item> RED_CARD = ITEMS.register("red_card",
+            () -> new CardItem(new Item.Properties().stacksTo(1), true));
 
     public static final RegistryObject<Item> ARTIFICIAL_TURF_ITEM =
             registerBlockItem("artificial_turf", ModBlocks.ARTIFICIAL_TURF);
@@ -29,6 +40,12 @@ public class ModItems {
             registerBlockItem("red_goal", ModBlocks.RED_GOAL);
     public static final RegistryObject<Item> BLUE_GOAL_ITEM =
             registerBlockItem("blue_goal", ModBlocks.BLUE_GOAL);
+    public static final RegistryObject<Item> RED_SEAT_ITEM =
+            registerBlockItem("red_seat", ModBlocks.RED_SEAT);
+    public static final RegistryObject<Item> BLUE_SEAT_ITEM =
+            registerBlockItem("blue_seat", ModBlocks.BLUE_SEAT);
+    public static final RegistryObject<Item> SCOREBOARD_ITEM =
+            registerBlockItem("scoreboard", ModBlocks.SCOREBOARD);
 
     private static RegistryObject<Item> registerBlockItem(String name, RegistryObject<Block> block) {
         return ITEMS.register(name, () -> new BlockItem(block.get(), new Item.Properties()));

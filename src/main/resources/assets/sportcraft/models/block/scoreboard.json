@@ -1,0 +1,21 @@
+{
+  "parent": "block/block",
+  "textures": {
+    "board": "sportcraft:block/scoreboard",
+    "particle": "sportcraft:block/scoreboard"
+  },
+  "elements": [
+    {
+      "from": [1, 0, 6],
+      "to": [15, 14, 10],
+      "faces": {
+        "north": {"texture": "#board"},
+        "south": {"texture": "#board"},
+        "east": {"texture": "#board"},
+        "west": {"texture": "#board"},
+        "up": {"texture": "#board"},
+        "down": {"texture": "#board"}
+      }
+    }
+  ]
+}

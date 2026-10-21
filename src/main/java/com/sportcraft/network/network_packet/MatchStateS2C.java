@@ -1,6 +1,12 @@
 package com.sportcraft.network.network_packet;
 
 import com.sportcraft.client.ClientMatchData;
+import com.sportcraft.match.BallType;
+import com.sportcraft.match.DrawRule;
+import com.sportcraft.match.FieldSize;
+import com.sportcraft.match.Formation;
+import com.sportcraft.match.MatchDifficulty;
+import com.sportcraft.match.MatchSettings;
 import com.sportcraft.match.MatchState;
 import com.sportcraft.match.Team;
 import net.minecraft.network.FriendlyByteBuf;
@@ -11,7 +17,9 @@ import net.minecraftforge.network.NetworkEvent;
 import java.util.function.Supplier;
 
 /**
- * Server-to-client snapshot of the scoreboard state for the receiving player.
+ * Server-to-client snapshot of the scoreboard state for the receiving player,
+ * including the full setup-GUI settings, field status and the local player's
+ * goalkeeper flag.
  */
 public class MatchStateS2C {
 
@@ -20,19 +28,41 @@ public class MatchStateS2C {
     private final int blueScore;
     private final int remainingSeconds;
     private final Team localTeam;
+    private final boolean localKeeper;
+    private final boolean fieldBuilt;
+    private final MatchSettings settings;
 
-    public MatchStateS2C(byte stateOrdinal, int redScore, int blueScore,
-                         int remainingSeconds, byte localTeamOrdinal) {
+    public MatchStateS2C(byte stateOrdinal, int redScore, int blueScore, int remainingSeconds,
+                         byte localTeamOrdinal, boolean localKeeper, boolean fieldBuilt,
+                         MatchSettings settings) {
         this.state = MatchState.byOrdinal(stateOrdinal);
         this.redScore = redScore;
         this.blueScore = blueScore;
         this.remainingSeconds = remainingSeconds;
         this.localTeam = Team.byOrdinal(localTeamOrdinal);
+        this.localKeeper = localKeeper;
+        this.fieldBuilt = fieldBuilt;
+        this.settings = settings;
     }
 
     public MatchStateS2C(FriendlyByteBuf buffer) {
-        this(buffer.readByte(), buffer.readInt(), buffer.readInt(),
-                buffer.readInt(), buffer.readByte());
+        this.state = MatchState.byOrdinal(buffer.readByte());
+        this.redScore = buffer.readInt();
+        this.blueScore = buffer.readInt();
+        this.remainingSeconds = buffer.readInt();
+        this.localTeam = Team.byOrdinal(buffer.readByte());
+        this.localKeeper = buffer.readBoolean();
+        this.fieldBuilt = buffer.readBoolean();
+        MatchSettings value = new MatchSettings();
+        value.setSport(BallType.byOrdinal(buffer.readByte()));
+        value.setFieldSize(FieldSize.byOrdinal(buffer.readByte()));
+        value.setTeamSize(buffer.readByte());
+        value.setDifficulty(MatchDifficulty.byOrdinal(buffer.readByte()));
+        value.setHalfMinutes(buffer.readByte());
+        value.setDrawRule(DrawRule.byOrdinal(buffer.readByte()));
+        value.setHomeFormation(Formation.byOrdinal(buffer.readByte()));
+        value.setAwayFormation(Formation.byOrdinal(buffer.readByte()));
+        this.settings = value;
     }
 
     public void encode(FriendlyByteBuf buffer) {
@@ -41,6 +71,16 @@ public class MatchStateS2C {
         buffer.writeInt(blueScore);
         buffer.writeInt(remainingSeconds);
         buffer.writeByte(localTeam.ordinal());
+        buffer.writeBoolean(localKeeper);
+        buffer.writeBoolean(fieldBuilt);
+        buffer.writeByte(settings.getSport().ordinal());
+        buffer.writeByte(settings.getFieldSize().ordinal());
+        buffer.writeByte(settings.getTeamSize());
+        buffer.writeByte(settings.getDifficulty().ordinal());
+        buffer.writeByte(settings.getHalfMinutes());
+        buffer.writeByte(settings.getDrawRule().ordinal());
+        buffer.writeByte(settings.getHomeFormation().ordinal());
+        buffer.writeByte(settings.getAwayFormation().ordinal());
     }
 
     public void handle(Supplier<NetworkEvent.Context> contextSupplier) {
@@ -48,7 +88,8 @@ public class MatchStateS2C {
         context.enqueueWork(() -> {
             // Only the physical client ever receives this packet.
             if (FMLEnvironment.dist == Dist.CLIENT) {
-                ClientMatchData.update(state, redScore, blueScore, remainingSeconds, localTeam);
+                ClientMatchData.update(state, redScore, blueScore, remainingSeconds,
+                        localTeam, localKeeper, fieldBuilt, settings);
             }
         });
         context.setPacketHandled(true);

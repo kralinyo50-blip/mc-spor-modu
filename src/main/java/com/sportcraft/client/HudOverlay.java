@@ -1,7 +1,7 @@
 package com.sportcraft.client;
 
 import com.sportcraft.client.screen.MatchScreen;
-import com.sportcraft.item.SoccerBallItem;
+import com.sportcraft.item.SportsBallItem;
 import com.sportcraft.match.Team;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -42,8 +42,8 @@ public class HudOverlay {
         }
 
         if (minecraft.player.isUsingItem()
-                && minecraft.player.getUseItem().getItem() instanceof SoccerBallItem) {
-            float charge = SoccerBallItem.getChargeRatio(minecraft.player);
+                && minecraft.player.getUseItem().getItem() instanceof SportsBallItem) {
+            float charge = SportsBallItem.getChargeRatio(minecraft.player);
             int barWidth = 102;
             int x = (screenWidth - barWidth) / 2;
             int y = screenHeight - 44;

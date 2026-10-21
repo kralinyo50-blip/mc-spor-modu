@@ -6,6 +6,7 @@ import org.joml.Quaternionf;
 import com.sportcraft.SportCraft;
 import com.sportcraft.client.model.BallModel;
 import com.sportcraft.entity.SoccerBallEntity;
+import com.sportcraft.match.BallType;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.EntityRenderer;
@@ -14,14 +15,24 @@ import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 
+import java.util.EnumMap;
+import java.util.Map;
+
 /**
  * Renders the ball with a rolling rotation whose axis is perpendicular to the
  * horizontal travel direction, so the ball visually tumbles instead of sliding.
+ * The texture is chosen from the entity's synched {@link BallType}.
  */
 public class SoccerBallRenderer extends EntityRenderer<SoccerBallEntity> {
 
-    private static final ResourceLocation TEXTURE =
-            new ResourceLocation(SportCraft.MOD_ID, "textures/entity/soccer_ball.png");
+    private static final Map<BallType, ResourceLocation> TEXTURES = new EnumMap<>(BallType.class);
+
+    static {
+        for (BallType type : BallType.values()) {
+            TEXTURES.put(type, new ResourceLocation(SportCraft.MOD_ID,
+                    "textures/entity/" + type.getTextureName() + "_ball.png"));
+        }
+    }
 
     private final BallModel model;
 
@@ -34,6 +45,7 @@ public class SoccerBallRenderer extends EntityRenderer<SoccerBallEntity> {
     @Override
     public void render(SoccerBallEntity entity, float entityYaw, float partialTick, PoseStack poseStack,
                        MultiBufferSource bufferSource, int packedLight) {
+        ResourceLocation texture = getTextureLocation(entity);
         poseStack.pushPose();
         // Entity origin is at the feet; the 0.5-block cube must be centred vertically.
         poseStack.translate(0.0D, 0.25D, 0.0D);
@@ -46,7 +58,7 @@ public class SoccerBallRenderer extends EntityRenderer<SoccerBallEntity> {
         poseStack.mulPose(new Quaternionf().setAngleAxis(
                 (float) Math.toRadians(roll), axisX, 0.0F, axisZ));
 
-        VertexConsumer consumer = bufferSource.getBuffer(RenderType.entityCutoutNoCull(TEXTURE));
+        VertexConsumer consumer = bufferSource.getBuffer(RenderType.entityCutoutNoCull(texture));
         model.renderToBuffer(poseStack, consumer, packedLight, OverlayTexture.NO_OVERLAY,
                 1.0F, 1.0F, 1.0F, 1.0F);
         poseStack.popPose();
@@ -56,6 +68,6 @@ public class SoccerBallRenderer extends EntityRenderer<SoccerBallEntity> {
 
     @Override
     public ResourceLocation getTextureLocation(SoccerBallEntity entity) {
-        return TEXTURE;
+        return TEXTURES.get(entity.getBallType());
     }
 }

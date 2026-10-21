@@ -183,6 +183,116 @@ def whistle():
     save(img, "item/whistle.png")
 
 
+def item_basketball():
+    img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+    px = img.load()
+    mask = ball_mask().load()
+    orange = (204, 102, 34)
+    for x in range(16):
+        for y in range(16):
+            if mask[x, y]:
+                px[x, y] = noise(orange, 7) + (255,)
+    seam = (58, 30, 14, 255)
+    # Curved vertical and horizontal seams.
+    for y in range(16):
+        for x in (7, 8):
+            if mask[x, y]:
+                px[x, y] = seam
+    for x in range(16):
+        if mask[x, 7]:
+            px[x, 7] = seam
+        if mask[x, 8]:
+            px[x, 8] = seam
+    for x in range(16):
+        for y in range(16):
+            if not mask[x, y]:
+                continue
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                nx, ny = x + dx, y + dy
+                if 0 <= nx < 16 and 0 <= ny < 16 and not mask[nx, ny]:
+                    px[x, y] = (120, 56, 18, 255)
+    save(img, "item/basketball.png")
+
+
+def entity_basketball():
+    img = Image.new("RGB", (16, 16))
+    px = img.load()
+    for x in range(16):
+        for y in range(16):
+            px[x, y] = noise((204, 102, 34), 7)
+    seam = (58, 30, 14)
+    for y in range(16):
+        px[7, y] = seam
+        px[8, y] = seam
+    for x in range(16):
+        px[x, 7] = seam
+        px[x, 8] = seam
+    # Corner seam patches keep neighbouring faces consistent.
+    for cx, cy in ((1, 1), (14, 14)):
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                px[cx + dx, cy + dy] = seam
+    save(img, "entity/basketball_ball.png")
+
+
+def card(color, name):
+    img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+    px = img.load()
+    for x in range(4, 12):
+        for y in range(2, 15):
+            corner = (x in (4, 11) and y in (2, 14))
+            if not corner:
+                px[x, y] = noise(color, 5) + (255,)
+    # Light border and inner highlight for a plastic-card look.
+    for y in range(3, 14):
+        px[4, y] = tuple(max(0, c - 45) for c in color) + (255,)
+        px[11, y] = tuple(max(0, c - 45) for c in color) + (255,)
+        px[5, y] = tuple(min(255, c + 35) for c in color) + (255,)
+    save(img, f"item/{name}.png")
+
+
+def seat(color):
+    img = Image.new("RGB", (16, 16))
+    px = img.load()
+    for x in range(16):
+        for y in range(16):
+            px[x, y] = noise(color, 7)
+    # Backrest shadow at the top row, seat highlight in the middle.
+    for x in range(16):
+        px[x, 0] = tuple(max(0, c - 50) for c in color)
+        px[x, 1] = tuple(max(0, c - 30) for c in color)
+        px[x, 8] = tuple(min(255, c + 35) for c in color)
+    return img
+
+
+def block_seats():
+    save(seat((178, 44, 44)), "block/red_seat.png")
+    save(seat((44, 86, 196)), "block/blue_seat.png")
+
+
+def scoreboard():
+    img = Image.new("RGB", (16, 16))
+    px = img.load()
+    frame = (96, 64, 30)
+    board = (24, 26, 32)
+    for x in range(16):
+        for y in range(16):
+            px[x, y] = noise(frame, 5)
+    for x in range(2, 14):
+        for y in range(2, 14):
+            px[x, y] = noise(board, 4)
+    # Digit-like score marks in amber.
+    amber = (240, 188, 60)
+    for x, y in [(5, 5), (5, 6), (5, 7), (6, 8), (10, 5), (10, 6), (10, 7), (9, 8)]:
+        px[x, y] = amber
+    # Centre colon.
+    px[7, 6] = amber
+    px[8, 6] = amber
+    px[7, 9] = amber
+    px[8, 9] = amber
+    save(img, "block/scoreboard.png")
+
+
 def logo():
     """16x16 pixel logo upscaled to 128x128 for documentation / promotional use."""
     small = Image.new("RGB", (16, 16))
@@ -225,6 +335,12 @@ def main():
     save(goal_net((48, 92, 220)), "block/blue_goal_net.png")
     item_soccer_ball()
     entity_soccer_ball()
+    item_basketball()
+    entity_basketball()
+    card((228, 196, 36), "yellow_card")
+    card((208, 40, 40), "red_card")
+    block_seats()
+    scoreboard()
     whistle()
     logo()
     print("All textures generated.")

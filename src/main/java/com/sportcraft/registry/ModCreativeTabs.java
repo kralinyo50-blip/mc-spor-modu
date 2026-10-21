@@ -18,12 +18,21 @@ public class ModCreativeTabs {
                     .title(Component.translatable("itemGroup.sportcraft.sportcraft_tab"))
                     .icon(() -> new ItemStack(ModItems.SOCCER_BALL.get()))
                     .displayItems((parameters, output) -> {
+                        // Balls and referee gear.
                         output.accept(ModItems.SOCCER_BALL.get());
+                        output.accept(ModItems.BASKETBALL.get());
                         output.accept(ModItems.WHISTLE.get());
+                        output.accept(ModItems.YELLOW_CARD.get());
+                        output.accept(ModItems.RED_CARD.get());
+                        // Field construction.
                         output.accept(ModBlocks.ARTIFICIAL_TURF.get());
                         output.accept(ModBlocks.FIELD_LINE.get());
                         output.accept(ModBlocks.RED_GOAL.get());
                         output.accept(ModBlocks.BLUE_GOAL.get());
+                        // Stands and scoreboard.
+                        output.accept(ModBlocks.RED_SEAT.get());
+                        output.accept(ModBlocks.BLUE_SEAT.get());
+                        output.accept(ModBlocks.SCOREBOARD.get());
                     })
                     .build());
 

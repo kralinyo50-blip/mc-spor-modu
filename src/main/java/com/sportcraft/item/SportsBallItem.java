@@ -1,28 +1,40 @@
 package com.sportcraft.item;
 
 import com.sportcraft.entity.SoccerBallEntity;
-import com.sportcraft.registry.ModEntities;
+import com.sportcraft.match.BallType;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 
 /**
- * Hold right click to charge, release to throw a {@link SoccerBallEntity}.
- * A quick tap produces a gentle throw; a full charge produces a powerful one.
- * The charge ratio is rendered by the client HUD.
+ * One item class for every ball sport. The stored {@link BallType} decides
+ * which texture the item uses and which physics profile the spawned entity gets.
+ *
+ * <p>Hold right click to charge, release to throw — a quick tap is a gentle
+ * throw, a full charge a powerful one. The HUD renders the charge ratio.</p>
  */
-public class SoccerBallItem extends Item {
+public class SportsBallItem extends Item {
 
     /** Ticks of use required to reach full power. */
     public static final int CHARGE_TICKS = 25;
     private static final int USE_DURATION = 72000;
+    private static final double MAX_THROW_SPEED = 1.6D;
 
-    public SoccerBallItem(Properties properties) {
+    private final BallType ballType;
+
+    public SportsBallItem(Properties properties, BallType ballType) {
         super(properties);
+        this.ballType = ballType;
+    }
+
+    public BallType getBallType() {
+        return ballType;
     }
 
     @Override
@@ -38,22 +50,16 @@ public class SoccerBallItem extends Item {
     }
 
     @Override
-    public void releaseUsing(ItemStack stack, Level level, net.minecraft.world.entity.LivingEntity entity,
-                             int timeLeft) {
+    public void releaseUsing(ItemStack stack, Level level, LivingEntity entity, int timeLeft) {
         if (level.isClientSide || !(entity instanceof Player player)) {
             return;
         }
         int usedTicks = getUseDuration(stack) - timeLeft;
         float power = Mth.clamp(usedTicks / (float) CHARGE_TICKS, 0.15F, 1.0F);
-
-        SoccerBallEntity ball = ModEntities.SOCCER_BALL.get().create(level);
-        if (ball == null) {
-            return;
-        }
-        ball.moveTo(player.getX(), player.getEyeY() - 0.25D, player.getZ(),
-                player.getYRot(), player.getXRot());
-        ball.launchFrom(player, power);
-        level.addFreshEntity(ball);
+        Vec3 look = player.getLookAngle();
+        Vec3 spawnPos = new Vec3(player.getX(), player.getEyeY() - 0.25D, player.getZ());
+        SoccerBallEntity ball = SoccerBallEntity.spawn(level, spawnPos, ballType);
+        ball.setDeltaMovement(look.scale(MAX_THROW_SPEED * power));
 
         if (!player.getAbilities().instabuild) {
             stack.shrink(1);
@@ -63,7 +69,7 @@ public class SoccerBallItem extends Item {
     /** 0..1 charge ratio for the HUD power bar. */
     public static float getChargeRatio(Player player) {
         ItemStack stack = player.getUseItem();
-        if (!(stack.getItem() instanceof SoccerBallItem)) {
+        if (!(stack.getItem() instanceof SportsBallItem)) {
             return 0.0F;
         }
         int usedTicks = stack.getUseDuration() - player.getUseItemRemainingTicks();

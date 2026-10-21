@@ -1,8 +1,10 @@
 package com.sportcraft.network;
 
 import com.sportcraft.SportCraft;
+import com.sportcraft.network.network_packet.BuildFieldC2S;
 import com.sportcraft.network.network_packet.JoinTeamC2S;
 import com.sportcraft.network.network_packet.MatchControlC2S;
+import com.sportcraft.network.network_packet.MatchSettingsC2S;
 import com.sportcraft.network.network_packet.MatchStateS2C;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.fml.common.Mod;
@@ -15,7 +17,8 @@ import net.minecraftforge.network.simple.SimpleChannel;
  */
 public final class ModNetwork {
 
-    private static final String PROTOCOL_VERSION = "1";
+    // Bumped to "2" together with the expanded MatchStateS2C / JoinTeamC2S payloads.
+    private static final String PROTOCOL_VERSION = "2";
 
     public static SimpleChannel CHANNEL;
 
@@ -46,6 +49,16 @@ public final class ModNetwork {
                     .encoder(MatchStateS2C::encode)
                     .decoder(MatchStateS2C::new)
                     .consumerMainThread(MatchStateS2C::handle)
+                    .add();
+            CHANNEL.messageBuilder(MatchSettingsC2S.class, id++)
+                    .encoder(MatchSettingsC2S::encode)
+                    .decoder(MatchSettingsC2S::new)
+                    .consumerMainThread(MatchSettingsC2S::handle)
+                    .add();
+            CHANNEL.messageBuilder(BuildFieldC2S.class, id++)
+                    .encoder(BuildFieldC2S::encode)
+                    .decoder(BuildFieldC2S::new)
+                    .consumerMainThread(BuildFieldC2S::handle)
                     .add();
         });
     }
