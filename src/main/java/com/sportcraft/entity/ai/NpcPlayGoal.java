@@ -842,9 +842,11 @@ public class NpcPlayGoal extends Goal {
 
     private List<SoccerNpcEntity> outfieldBots(ServerLevel level, Team team) {
         AABB searchArea = new AABB(MatchManager.get(level).getFieldCenter()).inflate(BALL_SEARCH_RADIUS);
+        // Mutable ArrayList: callers sort this list in place (rank/wall order).
+        // Stream#toList() returns an immutable list and throws on sort().
         return level.getEntitiesOfClass(SoccerNpcEntity.class, searchArea).stream()
                 .filter(bot -> !bot.isReferee() && !bot.isKeeper() && bot.getSportTeam() == team)
-                .toList();
+                .collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new));
     }
 
     private boolean isNearestOutfield(ServerLevel level, Vec3 point, Team team) {
