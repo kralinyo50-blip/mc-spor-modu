@@ -63,9 +63,22 @@ public class MatchManager extends SavedData {
     private int lastFoulTick = Integer.MIN_VALUE / 2;
     private Team lastFoulTeam = Team.RED;
     private Vec3 lastFoulPos = Vec3.ZERO;
+    private UUID lastFoulTackler = null;
+    private byte lastFoulCard = SoccerNpcEntity.CARD_NONE;
+    // Discipline ledger: total fouls and shown yellow cards per participant.
+    private final Map<UUID, Integer> foulCounts = new HashMap<>();
+    private final Map<UUID, Integer> yellowCardCounts = new HashMap<>();
     // Real-player slide tackles: cooldown gate plus the active contact window.
     private final Map<UUID, Integer> playerSlideCooldownUntil = new HashMap<>();
     private final Map<UUID, Integer> playerSlideActiveUntil = new HashMap<>();
+
+    // Free-kick phase. While active the teams freeze into set-piece roles
+    // (wall, taker, support) instead of chasing; the phase ends on the kick
+    // or automatically after the safety timeout.
+    private boolean freeKickActive;
+    private Team freeKickTeam = Team.RED;
+    private Vec3 freeKickPos = Vec3.ZERO;
+    private int freeKickEndTick;
 
     /** Outcome of a bot population run, used for the operator summary message. */
     public record PopulateResult(int redBots, int blueBots, int redPlayers,
@@ -82,6 +95,12 @@ public class MatchManager extends SavedData {
     private static final int FOUL_MIN_GAP_TICKS = 30;
     private static final double CLEAN_TACKLE_DIST_SQR = 3.24D;
     private static final int PLAYER_SLIDE_COOLDOWN_TICKS = 25;
+    // Long enough for the referee's run-in, talk and card scene before the
+    // safety timeout releases the set piece; the kick itself ends it earlier.
+    private static final int FREE_KICK_DURATION_TICKS = 280;
+    private static final double FREE_KICK_WALL_DISTANCE = 4.2D;
+    private static final double FREE_KICK_WALL_SPACING = 0.95D;
+    private static final double BALL_REST_LIFT = 0.32D;
 
     public MatchManager() {
         this.remainingSeconds = settings.getHalfLengthSeconds();
@@ -97,6 +116,9 @@ public class MatchManager extends SavedData {
     /** Called once per server tick from the Forge event handler. */
     public void serverTick(MinecraftServer server) {
         tickPlayerSlides(server);
+        if (freeKickActive && server.getTickCount() >= freeKickEndTick) {
+            endFreeKick();
+        }
         if (state != MatchState.RUNNING) {
             return;
         }
@@ -191,6 +213,7 @@ public class MatchManager extends SavedData {
         } else {
             blueScore++;
         }
+        endFreeKick();
         setDirty();
         return true;
     }
@@ -228,6 +251,9 @@ public class MatchManager extends SavedData {
         remainingSeconds = settings.getHalfLengthSeconds();
         tickCounter = 0;
         extraTimeUsed = false;
+        endFreeKick();
+        foulCounts.clear();
+        yellowCardCounts.clear();
         setDirty();
     }
 
@@ -435,12 +461,14 @@ public class MatchManager extends SavedData {
     }
 
     /**
-     * Records a foul in favour of {@code favoured} (the tackled side). Gap
-     * throttling prevents several contacts in the same slide from turning
-     * into a spam of whistle decisions.
+     * Records a foul in favour of {@code favoured} (the tackled side), opens
+     * the free-kick phase and decides the disciplinary card. Gap throttling
+     * prevents several contacts in the same slide from turning into a spam of
+     * whistle decisions. The ball is parked at the foul spot immediately so
+     * the set piece is well defined even before the referee reaches it.
      */
-    public void reportFoul(ServerLevel level, Team favoured, Vec3 pos) {
-        if (favoured == Team.SPECTATOR) {
+    public void reportFoul(ServerLevel level, Team favoured, LivingEntity tackler, Vec3 pos) {
+        if (favoured == Team.SPECTATOR || tackler == null) {
             return;
         }
         int now = level.getServer().getTickCount();
@@ -450,7 +478,92 @@ public class MatchManager extends SavedData {
         lastFoulTick = now;
         lastFoulTeam = favoured;
         lastFoulPos = pos;
+        lastFoulTackler = tackler.getUUID();
+        lastFoulCard = registerDiscipline(tackler.getUUID());
+        beginFreeKick(level, favoured, pos);
         setDirty();
+    }
+
+    /**
+     * Updates the foul/yellow ledgers and returns the card the referee must
+     * show for this offence: a yellow on the 2nd and 3rd foul, a straight red
+     * on the 4th, nothing for the first offence.
+     */
+    private byte registerDiscipline(UUID tackler) {
+        int count = foulCounts.getOrDefault(tackler, 0) + 1;
+        foulCounts.put(tackler, count);
+        if (count >= 4) {
+            return SoccerNpcEntity.CARD_RED;
+        }
+        if (count >= 2) {
+            yellowCardCounts.merge(tackler, 1, Integer::sum);
+            return SoccerNpcEntity.CARD_YELLOW;
+        }
+        return SoccerNpcEntity.CARD_NONE;
+    }
+
+    /** Opens the free-kick phase and parks the ball on the foul spot. */
+    private void beginFreeKick(ServerLevel level, Team takerTeam, Vec3 pos) {
+        Vec3 spot = new Vec3(pos.x, pos.y, pos.z);
+        freeKickActive = true;
+        freeKickTeam = takerTeam;
+        freeKickPos = spot;
+        freeKickEndTick = level.getServer().getTickCount() + FREE_KICK_DURATION_TICKS;
+        SoccerBallEntity ball = findNearestBall(level);
+        if (ball != null && !ball.isCarried()) {
+            ball.placeAt(spot.add(0.0D, BALL_REST_LIFT, 0.0D));
+        }
+    }
+
+    /** Closes the set piece; normal open play resumes. */
+    public void endFreeKick() {
+        freeKickActive = false;
+    }
+
+    public boolean isFreeKickActive() {
+        return freeKickActive;
+    }
+
+    public Team getFreeKickTeam() {
+        return freeKickTeam;
+    }
+
+    public Vec3 getFreeKickPos() {
+        return freeKickPos;
+    }
+
+    /**
+     * Position of wall slot {@code index} for a wall of {@code wallCount}
+     * defenders: 4.2 blocks between the ball and the defended goal, spread
+     * along the line perpendicular to the shot direction.
+     */
+    public Vec3 getWallPosition(int index, int wallCount) {
+        Vec3 shotDir = freeKickShotDirection();
+        Vec3 perpendicular = new Vec3(-shotDir.z, 0.0D, shotDir.x);
+        double lateral = (index - (wallCount - 1) / 2.0D) * FREE_KICK_WALL_SPACING;
+        Vec3 point = freeKickPos.add(shotDir.scale(FREE_KICK_WALL_DISTANCE))
+                .add(perpendicular.scale(lateral));
+        return new Vec3(point.x, freeKickPos.y, point.z);
+    }
+
+    /** Where the taker stands: one block behind the ball, away from the goal. */
+    public Vec3 getFreeKickTakerPos() {
+        Vec3 shotDir = freeKickShotDirection();
+        Vec3 point = freeKickPos.subtract(shotDir.scale(1.15D));
+        return new Vec3(point.x, freeKickPos.y, point.z);
+    }
+
+    private Vec3 freeKickShotDirection() {
+        BlockPos defendedGoal = getGoalPosition(freeKickTeam.opponent());
+        if (defendedGoal == null) {
+            return new Vec3(0.0D, 0.0D, freeKickTeam == Team.RED ? 1.0D : -1.0D);
+        }
+        Vec3 direction = new Vec3(defendedGoal.getX() + 0.5D - freeKickPos.x, 0.0D,
+                defendedGoal.getZ() + 0.5D - freeKickPos.z);
+        if (direction.lengthSqr() < 1.0E-6D) {
+            return new Vec3(0.0D, 0.0D, freeKickTeam == Team.RED ? 1.0D : -1.0D);
+        }
+        return direction.normalize();
     }
 
     /**
@@ -475,10 +588,7 @@ public class MatchManager extends SavedData {
             if (ball != null && tackler.distanceToSqr(ball) <= CLEAN_TACKLE_DIST_SQR) {
                 continue;
             }
-            reportFoul(level, otherTeam, tackler.position());
-            if (ball != null) {
-                ball.setDeltaMovement(ball.getDeltaMovement().scale(0.25D));
-            }
+            reportFoul(level, otherTeam, tackler, tackler.position());
             return;
         }
     }
@@ -560,6 +670,15 @@ public class MatchManager extends SavedData {
 
     public Vec3 getLastFoulPos() {
         return lastFoulPos;
+    }
+
+    public UUID getLastFoulTackler() {
+        return lastFoulTackler;
+    }
+
+    /** Card level ({@link SoccerNpcEntity#CARD_NONE}/YELLOW/RED) for the latest foul. */
+    public byte getLastFoulCard() {
+        return lastFoulCard;
     }
 
     public void broadcast(MinecraftServer server) {

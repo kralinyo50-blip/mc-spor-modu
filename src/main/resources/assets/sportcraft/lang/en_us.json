@@ -90,6 +90,9 @@
   "message.sportcraft.referee_kickoff": "Referee: Kick-off! Good game.",
   "message.sportcraft.referee_goal": "Referee: GOAL! %1$s scores. Score %2$s - %3$s",
   "message.sportcraft.referee_foul": "Referee: Foul! Free kick for %1$s.",
+  "message.sportcraft.referee_warning": "Referee: That is your warning. Next time it is a card.",
+  "message.sportcraft.referee_yellow_card": "Referee: YELLOW CARD! Reckless challenge.",
+  "message.sportcraft.referee_red_card": "Referee: RED CARD! You are off for serious foul play.",
 
   "command.sportcraft.joined": "You joined %s",
   "command.sportcraft.unknown_team": "Unknown team: %s (use red, blue or spectator)",

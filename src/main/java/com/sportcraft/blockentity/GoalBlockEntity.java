@@ -44,7 +44,8 @@ public class GoalBlockEntity extends BlockEntity {
 
         List<SoccerBallEntity> balls = level.getEntitiesOfClass(SoccerBallEntity.class, goalArea);
         for (SoccerBallEntity ball : balls) {
-            if (ball.getGoalCooldown() > 0) {
+            // A ball held in a keeper's hands must never count as a goal.
+            if (ball.getGoalCooldown() > 0 || ball.isCarried()) {
                 continue;
             }
             registerGoal(level, ball, goalBlock.getTeam());

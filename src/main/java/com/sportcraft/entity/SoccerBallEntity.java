@@ -57,6 +57,8 @@ public class SoccerBallEntity extends Entity {
     private int roofEscapeCooldown;
     private float visualYaw;
     private float visualRoll;
+    /** Keeper holding the ball; while non-null the ball follows the carrier and skips physics. */
+    private Entity carrier;
 
     public SoccerBallEntity(EntityType<?> type, Level level) {
         super(type, level);
@@ -100,6 +102,9 @@ public class SoccerBallEntity extends Entity {
         }
         if (goalCooldown > 0) {
             goalCooldown--;
+        }
+        if (tickCarry()) {
+            return;
         }
         applyKicks();
         if (this.isInWater()) {
@@ -150,7 +155,73 @@ public class SoccerBallEntity extends Entity {
         return visualYaw;
     }
 
+    // ------------------------------------------------------------------
+    // Goalkeeper carry (catch) and free-kick placement
+    // ------------------------------------------------------------------
+
+    public boolean isCarried() {
+        return carrier != null;
+    }
+
+    public Entity getCarrier() {
+        return carrier;
+    }
+
+    /** Attaches the ball to a keeper's hands: physics stop and it follows them. */
+    public void startCarry(Entity entity) {
+        this.carrier = entity;
+        setDeltaMovement(Vec3.ZERO);
+        kickCooldown = Math.max(kickCooldown, 30);
+        hasImpulse = true;
+    }
+
+    /** Drops the ball from the keeper's hands with the given throw velocity. */
+    public void releaseCarry(Vec3 throwVelocity) {
+        if (carrier == null) {
+            return;
+        }
+        Entity holder = carrier;
+        carrier = null;
+        visualYaw = holder.getYRot();
+        setDeltaMovement(throwVelocity);
+        kickCooldown = 10;
+        hasImpulse = true;
+        level().playSound(null, blockPosition(), ModSounds.KICK.get(),
+                SoundSource.PLAYERS, 0.9F, 0.8F);
+    }
+
+    /**
+     * Parks the ball at a fixed point for a set piece (free kick). Clears any
+     * carrier, zeros velocity and arms cooldowns so nobody can touch it early.
+     */
+    public void placeAt(Vec3 position) {
+        carrier = null;
+        moveTo(position.x, position.y, position.z, 0.0F, 0.0F);
+        setDeltaMovement(Vec3.ZERO);
+        hasImpulse = true;
+        kickCooldown = 25;
+        goalCooldown = 40;
+    }
+
+    /** @return true while carried, in which case the normal physics tick is skipped. */
+    private boolean tickCarry() {
+        if (carrier == null) {
+            return false;
+        }
+        if (!carrier.isAlive() || carrier.isRemoved()) {
+            carrier = null;
+            return false;
+        }
+        setPos(carrier.getX(), carrier.getY() + 1.15D, carrier.getZ());
+        setDeltaMovement(Vec3.ZERO);
+        setOnGround(false);
+        return true;
+    }
+
     private void applyKicks() {
+        if (carrier != null) {
+            return;
+        }
         AABB searchBox = getBoundingBox().inflate(1.2D);
         for (LivingEntity entity : level().getEntitiesOfClass(LivingEntity.class, searchBox)) {
             if (entity.isSpectator() || !entity.isAlive()) {
@@ -198,7 +269,7 @@ public class SoccerBallEntity extends Entity {
      * 0..1.5 range (attack strength, up-scaled while sprinting).
      */
     public void kick(Player player, float power) {
-        if (kickCooldown > 0 || !isAlive()) {
+        if (kickCooldown > 0 || !isAlive() || carrier != null) {
             return;
         }
         Vec3 look = player.getLookAngle();
@@ -214,7 +285,7 @@ public class SoccerBallEntity extends Entity {
 
     /** Gentle pass from a non-sneaking right click. */
     public void softTouch(Player player) {
-        if (kickCooldown > 0 || !isAlive()) {
+        if (kickCooldown > 0 || !isAlive() || carrier != null) {
             return;
         }
         Vec3 look = player.getLookAngle();
@@ -227,7 +298,7 @@ public class SoccerBallEntity extends Entity {
 
     /** Sneak + right click: collect the ball back into the inventory. */
     public void pickUp(Player player) {
-        if (level().isClientSide) {
+        if (level().isClientSide || carrier != null) {
             return;
         }
         ItemStack stack = new ItemStack(getBallType() == BallType.BASKETBALL
@@ -250,7 +321,7 @@ public class SoccerBallEntity extends Entity {
      * the ball on the turf instead of launching it.
      */
     public void kickFromMob(LivingEntity mob, Vec3 direction, double speed, double upward) {
-        if (kickCooldown > 0 || !isAlive() || direction.lengthSqr() < 1.0E-6D) {
+        if (kickCooldown > 0 || !isAlive() || carrier != null || direction.lengthSqr() < 1.0E-6D) {
             return;
         }
         Vec3 dir = direction.normalize();
@@ -267,7 +338,7 @@ public class SoccerBallEntity extends Entity {
      * ball visibly flies over defenders and drops onto the rim.
      */
     public void shootAt(LivingEntity mob, Vec3 target, double speed, double arc) {
-        if (!isAlive()) {
+        if (!isAlive() || carrier != null) {
             return;
         }
         Vec3 diff = target.subtract(position());
@@ -291,7 +362,7 @@ public class SoccerBallEntity extends Entity {
      * the kick cooldown because it is an AI-timed contact, not a shot.
      */
     public void dribbleBounce(Vec3 direction) {
-        if (!isAlive()) {
+        if (!isAlive() || carrier != null) {
             return;
         }
         Vec3 dir = new Vec3(direction.x, 0.0D, direction.z);
@@ -308,6 +379,7 @@ public class SoccerBallEntity extends Entity {
         // BlockPos y is the air block above the ground; lift the centre so the
         // bottom (centre - radius) rests exactly on the ground surface instead
         // of spawning embedded inside the turf and tunnelling through it.
+        carrier = null;
         moveTo(pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D, 0.0F, 0.0F);
         setDeltaMovement(Vec3.ZERO);
         hasImpulse = true;

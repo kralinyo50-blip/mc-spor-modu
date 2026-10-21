@@ -24,15 +24,28 @@ import net.minecraftforge.network.NetworkHooks;
  * set; it runs {@link RefereeGoal} instead of the team brain.
  *
  * <p>They are invulnerable, persistent while alive and never saved with the
- * world (the match lifecycle owns their spawn/despawn). Three synched action
- * values drive the custom limb animations on every client:
- * tackle (slide) timer, dribble phase and referee hand signal.</p>
+ * world (the match lifecycle owns their spawn/despawn). Synched action bytes
+ * drive the custom limb animations on every client: slide tackle, dribble,
+ * referee signal/card, goalkeeper dive-catch-punch, free-kick wall and the
+ * kick wind-up. The server owns every countdown and pushes values through
+ * the entity data manager.</p>
  */
 public class SoccerNpcEntity extends PathfinderMob {
 
     public static final int TACKLE_DURATION_TICKS = 12;
     public static final int DRIBBLE_KEEPALIVE_TICKS = 6;
     public static final int SIGNAL_DURATION_TICKS = 30;
+    public static final int KEEPER_ACTION_DURATION_TICKS = 14;
+    public static final int CARD_DURATION_TICKS = 45;
+    public static final int KICK_WINDUP_DURATION_TICKS = 9;
+
+    public static final byte KEEPER_NONE = 0;
+    public static final byte KEEPER_DIVE = 1;
+    public static final byte KEEPER_CATCH = 2;
+    public static final byte KEEPER_PUNCH = 3;
+    public static final byte CARD_NONE = 0;
+    public static final byte CARD_YELLOW = 1;
+    public static final byte CARD_RED = 2;
 
     private static final EntityDataAccessor<Byte> DATA_TEAM =
             SynchedEntityData.defineId(SoccerNpcEntity.class, EntityDataSerializers.BYTE);
@@ -47,6 +60,18 @@ public class SoccerNpcEntity extends PathfinderMob {
     private static final EntityDataAccessor<Byte> DATA_DRIBBLE =
             SynchedEntityData.defineId(SoccerNpcEntity.class, EntityDataSerializers.BYTE);
     private static final EntityDataAccessor<Byte> DATA_SIGNAL =
+            SynchedEntityData.defineId(SoccerNpcEntity.class, EntityDataSerializers.BYTE);
+    private static final EntityDataAccessor<Byte> DATA_KEEPER_ACTION =
+            SynchedEntityData.defineId(SoccerNpcEntity.class, EntityDataSerializers.BYTE);
+    private static final EntityDataAccessor<Byte> DATA_KEEPER_TIMER =
+            SynchedEntityData.defineId(SoccerNpcEntity.class, EntityDataSerializers.BYTE);
+    private static final EntityDataAccessor<Byte> DATA_CARD =
+            SynchedEntityData.defineId(SoccerNpcEntity.class, EntityDataSerializers.BYTE);
+    private static final EntityDataAccessor<Byte> DATA_CARD_TIMER =
+            SynchedEntityData.defineId(SoccerNpcEntity.class, EntityDataSerializers.BYTE);
+    private static final EntityDataAccessor<Byte> DATA_WALL =
+            SynchedEntityData.defineId(SoccerNpcEntity.class, EntityDataSerializers.BYTE);
+    private static final EntityDataAccessor<Byte> DATA_KICK_WINDUP =
             SynchedEntityData.defineId(SoccerNpcEntity.class, EntityDataSerializers.BYTE);
 
     public SoccerNpcEntity(EntityType<? extends PathfinderMob> type, Level level) {
@@ -63,6 +88,12 @@ public class SoccerNpcEntity extends PathfinderMob {
         this.entityData.define(DATA_TACKLE, (byte) 0);
         this.entityData.define(DATA_DRIBBLE, (byte) 0);
         this.entityData.define(DATA_SIGNAL, (byte) 0);
+        this.entityData.define(DATA_KEEPER_ACTION, (byte) KEEPER_NONE);
+        this.entityData.define(DATA_KEEPER_TIMER, (byte) 0);
+        this.entityData.define(DATA_CARD, (byte) CARD_NONE);
+        this.entityData.define(DATA_CARD_TIMER, (byte) 0);
+        this.entityData.define(DATA_WALL, (byte) 0);
+        this.entityData.define(DATA_KICK_WINDUP, (byte) 0);
     }
 
     @Override
@@ -86,6 +117,23 @@ public class SoccerNpcEntity extends PathfinderMob {
             }
             if (getSignalTicks() > 0) {
                 setSignalTicks((byte) (getSignalTicks() - 1));
+            }
+            if (getKeeperTimer() > 0) {
+                byte remaining = (byte) (getKeeperTimer() - 1);
+                setKeeperTimer(remaining);
+                if (remaining == 0) {
+                    setKeeperAction(KEEPER_NONE);
+                }
+            }
+            if (getCardTimer() > 0) {
+                byte remaining = (byte) (getCardTimer() - 1);
+                setCardTimer(remaining);
+                if (remaining == 0) {
+                    setCard(CARD_NONE);
+                }
+            }
+            if (getKickWindupTicks() > 0) {
+                setKickWindupTicks((byte) (getKickWindupTicks() - 1));
             }
         }
     }
@@ -130,6 +178,10 @@ public class SoccerNpcEntity extends PathfinderMob {
         this.entityData.set(DATA_REFEREE, (byte) (referee ? 1 : 0));
     }
 
+    // --------------------------------------------------------------
+    // Slide tackle
+    // --------------------------------------------------------------
+
     public byte getTackleTicks() {
         return this.entityData.get(DATA_TACKLE);
     }
@@ -145,6 +197,10 @@ public class SoccerNpcEntity extends PathfinderMob {
     private void setTackleTicks(byte ticks) {
         this.entityData.set(DATA_TACKLE, ticks);
     }
+
+    // --------------------------------------------------------------
+    // Basketball dribble
+    // --------------------------------------------------------------
 
     public byte getDribbleTicks() {
         return this.entityData.get(DATA_DRIBBLE);
@@ -163,6 +219,10 @@ public class SoccerNpcEntity extends PathfinderMob {
         this.entityData.set(DATA_DRIBBLE, ticks);
     }
 
+    // --------------------------------------------------------------
+    // Referee arm signal
+    // --------------------------------------------------------------
+
     public byte getSignalTicks() {
         return this.entityData.get(DATA_SIGNAL);
     }
@@ -174,6 +234,100 @@ public class SoccerNpcEntity extends PathfinderMob {
 
     private void setSignalTicks(byte ticks) {
         this.entityData.set(DATA_SIGNAL, ticks);
+    }
+
+    // --------------------------------------------------------------
+    // Goalkeeper saves
+    // --------------------------------------------------------------
+
+    public byte getKeeperAction() {
+        return this.entityData.get(DATA_KEEPER_ACTION);
+    }
+
+    public byte getKeeperTimer() {
+        return this.entityData.get(DATA_KEEPER_TIMER);
+    }
+
+    public boolean isKeeperSaving() {
+        return getKeeperTimer() > 0;
+    }
+
+    /** Starts a dive/catch/punch save animation with its full timer. */
+    public void startKeeperAction(byte action) {
+        setKeeperAction(action);
+        setKeeperTimer((byte) KEEPER_ACTION_DURATION_TICKS);
+    }
+
+    public void clearKeeperAction() {
+        setKeeperAction(KEEPER_NONE);
+        setKeeperTimer((byte) 0);
+    }
+
+    private void setKeeperAction(byte action) {
+        this.entityData.set(DATA_KEEPER_ACTION, action);
+    }
+
+    private void setKeeperTimer(byte ticks) {
+        this.entityData.set(DATA_KEEPER_TIMER, ticks);
+    }
+
+    // --------------------------------------------------------------
+    // Referee cards
+    // --------------------------------------------------------------
+
+    public byte getCard() {
+        return this.entityData.get(DATA_CARD);
+    }
+
+    public byte getCardTimer() {
+        return this.entityData.get(DATA_CARD_TIMER);
+    }
+
+    public boolean isShowingCard() {
+        return getCardTimer() > 0;
+    }
+
+    /** Referee-only: holds a yellow/red card up for the card animation. */
+    public void showCard(byte card) {
+        setCard(card);
+        setCardTimer((byte) CARD_DURATION_TICKS);
+    }
+
+    private void setCard(byte card) {
+        this.entityData.set(DATA_CARD, card);
+    }
+
+    private void setCardTimer(byte ticks) {
+        this.entityData.set(DATA_CARD_TIMER, ticks);
+    }
+
+    // --------------------------------------------------------------
+    // Free-kick wall and kick wind-up
+    // --------------------------------------------------------------
+
+    public boolean isInWall() {
+        return this.entityData.get(DATA_WALL) == 1;
+    }
+
+    public void setInWall(boolean inWall) {
+        this.entityData.set(DATA_WALL, (byte) (inWall ? 1 : 0));
+    }
+
+    public byte getKickWindupTicks() {
+        return this.entityData.get(DATA_KICK_WINDUP);
+    }
+
+    public boolean isWindingUp() {
+        return getKickWindupTicks() > 0;
+    }
+
+    /** Leg-swing animation played just before a free kick / shot. */
+    public void startKickWindup() {
+        setKickWindupTicks((byte) KICK_WINDUP_DURATION_TICKS);
+    }
+
+    private void setKickWindupTicks(byte ticks) {
+        this.entityData.set(DATA_KICK_WINDUP, ticks);
     }
 
     @Override
