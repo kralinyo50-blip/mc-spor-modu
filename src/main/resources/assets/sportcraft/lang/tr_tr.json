@@ -90,6 +90,9 @@
   "message.sportcraft.referee_kickoff": "Hakem: Maç başladı! İyi oyunlar.",
   "message.sportcraft.referee_goal": "Hakem: GOL! %1$s skoru buldu. Skor %2$s - %3$s",
   "message.sportcraft.referee_foul": "Hakem: Faul! %1$s lehine serbest vuruş.",
+  "message.sportcraft.referee_warning": "Hakem: Bu bir uyarı. Bir sonrakinde kart çıkar.",
+  "message.sportcraft.referee_yellow_card": "Hakem: SARI KART! Dikkatsiz müdahale.",
+  "message.sportcraft.referee_red_card": "Hakem: KIRMIZI KART! Ciddi faul, oyun dışı kalıyorsun.",
 
   "command.sportcraft.joined": "%s takımına katıldın",
   "command.sportcraft.unknown_team": "Bilinmeyen takım: %s (red, blue veya spectator kullan)",
