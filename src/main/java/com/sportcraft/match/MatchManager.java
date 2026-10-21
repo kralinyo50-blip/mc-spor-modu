@@ -522,7 +522,11 @@ public class MatchManager extends SavedData {
             if (entry.getValue() <= now) {
                 return true;
             }
-            if (server.getPlayerList().getPlayer(entry.getKey()) instanceof ServerPlayer player) {
+            // PlayerList#getPlayer(UUID) already returns ServerPlayer (or null);
+            // an instanceof pattern here is rejected by javac as a redundant
+            // subtype test, so a plain null check is the correct form.
+            ServerPlayer player = server.getPlayerList().getPlayer(entry.getKey());
+            if (player != null) {
                 checkTackleFoul(level, player, ball);
             }
             return false;
