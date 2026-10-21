@@ -29,8 +29,9 @@ public final class FormationLayout {
         int goalZ = fieldCenter.getZ() - inward * halfL;
 
         if (keeper) {
-            return Vec3.atBottomCenterOf(fieldCenter.getX(), fieldCenter.getY(),
-                    goalZ + inward * 2);
+            // Vec3.atBottomCenterOf takes a Vec3i (BlockPos), not three ints.
+            return Vec3.atBottomCenterOf(new BlockPos(fieldCenter.getX(), fieldCenter.getY(),
+                    goalZ + inward * 2));
         }
 
         int[] rows = parseRows(formation);
