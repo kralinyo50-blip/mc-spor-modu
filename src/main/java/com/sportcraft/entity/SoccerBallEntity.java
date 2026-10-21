@@ -249,7 +249,10 @@ public class SoccerBallEntity extends Entity {
 
     /** Called by the goal detector after a scored goal to move the ball out. */
     public void resetTo(BlockPos pos) {
-        moveTo(pos.getX() + 0.5D, pos.getY(), pos.getZ() + 0.5D, 0.0F, 0.0F);
+        // BlockPos y is the air block above the ground; lift the centre so the
+        // bottom (centre - radius) rests exactly on the ground surface instead
+        // of spawning embedded inside the turf and tunnelling through it.
+        moveTo(pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D, 0.0F, 0.0F);
         setDeltaMovement(Vec3.ZERO);
         hasImpulse = true;
         kickCooldown = 10;
@@ -265,12 +268,14 @@ public class SoccerBallEntity extends Entity {
         Vec3 movement = getDeltaMovement();
         AABB box = getBoundingBox();
 
-        // Vertical collision: floor and ceiling.
+        // Vertical collision: floor and ceiling. Filters are containment-safe:
+        // a shape is considered even when the ball is already partly inside it,
+        // which is what prevents the "ball falls through the ground" tunnelling.
         if (movement.y <= 0.0D) {
             final AABB current = box;
             AABB swept = current.expandTowards(0.0D, movement.y, 0.0D);
             double floor = collisionStream(swept)
-                    .map(shape -> shape.bounds().minY).filter(y -> y <= current.minY)
+                    .map(shape -> shape.bounds().minY).filter(y -> y <= current.maxY)
                     .max(Double::compare).orElse(Double.NEGATIVE_INFINITY);
             if (floor != Double.NEGATIVE_INFINITY) {
                 setPos(getX(), floor + BALL_RADIUS, getZ());
@@ -291,7 +296,7 @@ public class SoccerBallEntity extends Entity {
             final AABB current = box;
             AABB swept = current.expandTowards(0.0D, movement.y, 0.0D);
             double ceiling = collisionStream(swept)
-                    .map(shape -> shape.bounds().maxY).filter(y -> y >= current.maxY)
+                    .map(shape -> shape.bounds().maxY).filter(y -> y >= current.minY)
                     .min(Double::compare).orElse(Double.POSITIVE_INFINITY);
             if (ceiling != Double.POSITIVE_INFINITY) {
                 setPos(getX(), ceiling - BALL_RADIUS, getZ());
@@ -305,6 +310,14 @@ public class SoccerBallEntity extends Entity {
         // Horizontal collision: walls (and goal posts behave like walls here).
         double[] horizontal = resolveHorizontal(box, movement);
         setPos(getX() + horizontal[0], getY(), getZ() + horizontal[1]);
+
+        // Last-resort escape: if the ball is still embedded in a solid block
+        // (e.g. spawned inside terrain), lift it up until the box is clear.
+        int escapeAttempts = 0;
+        while (!level().noCollision(this, getBoundingBox()) && escapeAttempts < 4) {
+            setPos(getX(), getY() + 0.25D, getZ());
+            escapeAttempts++;
+        }
     }
 
     private double[] resolveHorizontal(AABB box, Vec3 movement) {
@@ -315,9 +328,9 @@ public class SoccerBallEntity extends Entity {
             AABB swept = current.expandTowards(moveX, 0.0D, 0.0D);
             double limit = moveX > 0.0D
                     ? collisionStream(swept).map(shape -> shape.bounds().maxX)
-                            .filter(x -> x >= current.maxX).min(Double::compare).orElse(Double.POSITIVE_INFINITY)
+                            .filter(x -> x >= current.minX).min(Double::compare).orElse(Double.POSITIVE_INFINITY)
                     : collisionStream(swept).map(shape -> shape.bounds().minX)
-                            .filter(x -> x <= current.minX).max(Double::compare).orElse(Double.NEGATIVE_INFINITY);
+                            .filter(x -> x <= current.maxX).max(Double::compare).orElse(Double.NEGATIVE_INFINITY);
             if (moveX > 0.0D && limit != Double.POSITIVE_INFINITY) {
                 moveX = limit - current.maxX - 0.001D;
                 setDeltaMovement(-getDeltaMovement().x * getBallType().getWallDamping(),
@@ -334,9 +347,9 @@ public class SoccerBallEntity extends Entity {
             AABB swept = current.expandTowards(0.0D, 0.0D, moveZ);
             double limit = moveZ > 0.0D
                     ? collisionStream(swept).map(shape -> shape.bounds().maxZ)
-                            .filter(z -> z >= current.maxZ).min(Double::compare).orElse(Double.POSITIVE_INFINITY)
+                            .filter(z -> z >= current.minZ).min(Double::compare).orElse(Double.POSITIVE_INFINITY)
                     : collisionStream(swept).map(shape -> shape.bounds().minZ)
-                            .filter(z -> z <= current.minZ).max(Double::compare).orElse(Double.NEGATIVE_INFINITY);
+                            .filter(z -> z <= current.maxZ).max(Double::compare).orElse(Double.NEGATIVE_INFINITY);
             if (moveZ > 0.0D && limit != Double.POSITIVE_INFINITY) {
                 moveZ = limit - current.maxZ - 0.001D;
                 setDeltaMovement(getDeltaMovement().x, getDeltaMovement().y,

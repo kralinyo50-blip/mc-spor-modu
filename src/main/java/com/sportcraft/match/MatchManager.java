@@ -54,7 +54,8 @@ public class MatchManager extends SavedData {
     private int tickCounter;
     private final Set<UUID> npcIds = new HashSet<>();
 
-    private static final String[] NPC_NAMES = {"Selim", "Umut", "Mert", "Emre", "Kaan", "Arda", "Deniz", "Can"};
+    private static final String[] HOME_NAMES = {"Selim", "Umut", "Mert", "Emre", "Kaan", "Arda", "Deniz"};
+    private static final String[] AWAY_NAMES = {"Can", "Burak", "Onur", "Yusuf", "Kerem", "Volkan", "Serkan"};
     private static final int KIT_RED = 0xC02626;
     private static final int KIT_BLUE = 0x274FC0;
     private static final int KIT_KEEPER = 0x2E8B46;
@@ -211,7 +212,9 @@ public class MatchManager extends SavedData {
         }
         int halfL = settings.getFieldSize().getLength() / 2;
         int offsetZ = team == Team.RED ? -halfL : halfL;
-        return new BlockPos(fieldCenter.getX(), fieldCenter.getY(), fieldCenter.getZ() + offsetZ);
+        // Basketball hoops are elevated structures; football goals sit on the ground.
+        int lift = settings.getSport() == BallType.BASKETBALL ? 3 : 0;
+        return new BlockPos(fieldCenter.getX(), fieldCenter.getY() + lift, fieldCenter.getZ() + offsetZ);
     }
 
     /**
@@ -268,23 +271,24 @@ public class MatchManager extends SavedData {
         if (goal == null) {
             return;
         }
-        int inward = team == Team.RED ? 1 : -1;
+        Formation formation = team == Team.RED
+                ? settings.getHomeFormation() : settings.getAwayFormation();
+        String[] namePool = team == Team.RED ? HOME_NAMES : AWAY_NAMES;
         for (int i = 0; i < count; i++) {
             boolean keeper = i == 0;
             int number = i + 1;
-            int x = fieldCenter.getX() + Math.round((i - (count - 1) / 2.0F) * 2.5F);
-            int z = keeper
-                    ? goal.getZ() + inward * 2
-                    : goal.getZ() + inward * (7 + (i % 3) * 4);
+            Vec3 home = FormationLayout.homePosition(fieldCenter, settings.getFieldSize(),
+                    formation, team, i, settings.getTeamSize(), keeper);
             SoccerNpcEntity npc = ModEntities.SOCCER_NPC.get().create(level);
             if (npc == null) {
                 return;
             }
-            npc.moveTo(x + 0.5D, goal.getY(), z + 0.5D, 0.0F, 0.0F);
+            npc.moveTo(home.x, home.y, home.z, 0.0F, 0.0F);
             npc.setSportTeam(team);
             npc.setKeeper(keeper);
+            npc.setSquadIndex(i);
             npc.setPersistenceRequired();
-            npc.setCustomName(Component.literal(number + " " + NPC_NAMES[(number - 1) % NPC_NAMES.length]));
+            npc.setCustomName(Component.literal(number + " " + namePool[(number - 1) % namePool.length]));
             npc.setCustomNameVisible(true);
             equipKit(npc, team, keeper);
             level.addFreshEntity(npc);

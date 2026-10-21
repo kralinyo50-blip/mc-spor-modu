@@ -28,6 +28,8 @@ public class SoccerNpcEntity extends PathfinderMob {
             SynchedEntityData.defineId(SoccerNpcEntity.class, EntityDataSerializers.BYTE);
     private static final EntityDataAccessor<Byte> DATA_KEEPER =
             SynchedEntityData.defineId(SoccerNpcEntity.class, EntityDataSerializers.BYTE);
+    private static final EntityDataAccessor<Byte> DATA_INDEX =
+            SynchedEntityData.defineId(SoccerNpcEntity.class, EntityDataSerializers.BYTE);
 
     public SoccerNpcEntity(EntityType<? extends PathfinderMob> type, Level level) {
         super(type, level);
@@ -38,6 +40,7 @@ public class SoccerNpcEntity extends PathfinderMob {
         super.defineSynchedData();
         this.entityData.define(DATA_TEAM, (byte) Team.RED.ordinal());
         this.entityData.define(DATA_KEEPER, (byte) 0);
+        this.entityData.define(DATA_INDEX, (byte) 0);
     }
 
     @Override
@@ -67,6 +70,14 @@ public class SoccerNpcEntity extends PathfinderMob {
 
     public void setKeeper(boolean keeper) {
         this.entityData.set(DATA_KEEPER, (byte) (keeper ? 1 : 0));
+    }
+
+    public int getSquadIndex() {
+        return this.entityData.get(DATA_INDEX);
+    }
+
+    public void setSquadIndex(int index) {
+        this.entityData.set(DATA_INDEX, (byte) Math.max(0, Math.min(127, index)));
     }
 
     @Override
