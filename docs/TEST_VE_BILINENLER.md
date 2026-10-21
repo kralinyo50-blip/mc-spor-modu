@@ -48,6 +48,17 @@ ve oyun içi çalıştırma **yapılamadı**. Bunun yerine aşağıdaki statik d
    Doğrulaması kaynak kodundan yapılmış Forge eklemeleri (sorunsuz): Forge
    KeyMapping 5-arg ctor, `setShouldReceiveVelocityUpdates`, `setRenderLayer`,
    `PacketDistributor`, SimpleChannel zinciri, overlay ve tuş olayları.
+10. **Gerçek `gradlew build` çıktısıyla ikinci tur düzeltme (JDK 17'li makinede
+    derlenirken yakalandı):**
+    - `IntegerArgumentType` ve `StringArgumentType` yanlış paketteydi
+      (`net.minecraft.commands.arguments`); bu temel tipler Brigadier
+      kütüphanesine ait: `com.mojang.brigadier.arguments.*`. `net.minecraft.
+      commands.arguments` paketi yalnızca MC'ye özgü tipleri (EntityArgument vb.)
+      içerir — paket içeriği kaynak aynasından tek tek doğrulandı.
+    - `org.joml.Vector3f.rotationDegrees(float)`, MC 1.20.1'in paketlediği JOML
+      1.10.5'te yok (üstelik dönüş tipi AxisAngle4f, `mulPose` Quaternionf ister).
+      Vanilya `BoatRenderer` deseniyle değiştirildi:
+      `new Quaternionf().setAngleAxis(radyan, x, y, z)` (açı radyan cinsinden).
 
 ## Kendi makinenizde doğrulama
 
