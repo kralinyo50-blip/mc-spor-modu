@@ -1,0 +1,11 @@
+# Windows batch dosyalari her zaman CRLF ile saklanmali
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Unix kabuk betikleri her zaman LF
+gradlew text eol=lf
+*.sh text eol=lf
+
+# Ikili dosyalar
+*.jar binary
+*.png binary

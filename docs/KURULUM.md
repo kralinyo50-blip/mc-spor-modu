@@ -12,6 +12,22 @@
 
 ## 1. Kaynak koddan derleme
 
+### En kolay yol: tek tık `JAR-YAP.bat` (Windows)
+
+Proje kök klasöründeki **`JAR-YAP.bat`** dosyasına çift tıkla. Betik:
+
+1. Makinedeki JDK 17 kurulumunu otomatik bulur (Adoptium, Corretto, Microsoft,
+   Zulu, BellSoft, Java klasörleri); sistemdeki Java 21'i değiştirmez.
+2. JDK 17 bulunamazsa kurulum komutunu gösterip durur.
+3. `gradlew.bat clean build` ile temiz derleme yapar ve her adımda hata kontrolü yapar.
+4. Üretilen JAR'ı proje kökündeki **`JAR`** klasörüne kopyalar ve klasörü açar.
+5. `.minecraft\mods` klasörü varsa oraya da kopyalamak isteyip istemediğini sorar.
+
+Başarı sonrası JAR konumu: `JAR\sportcraft-1.0.0.jar`
+Hata olursa pencere kapanmaz, `[HATA]` satırı nedeni gösterir.
+
+### Elle derleme
+
 Depo kökünde:
 
 ```bash
