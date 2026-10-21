@@ -73,7 +73,14 @@ public class SportCraftCommand {
         }
         manager.start(seconds);
         if (manager.getState() == MatchState.RUNNING) {
-            manager.populateNpcs(overworld, source.getServer());
+            MatchManager.PopulateResult result = manager.populateNpcs(overworld, source.getServer());
+            Component referee = Component.translatable(result.referee()
+                    ? "message.sportcraft.referee_present"
+                    : "message.sportcraft.referee_missing");
+            source.sendSuccess(() -> Component.translatable("message.sportcraft.teams_ready",
+                    result.redBots() + result.redPlayers(),
+                    result.blueBots() + result.bluePlayers(),
+                    referee), true);
         }
         manager.broadcast(source.getServer());
         source.sendSuccess(() -> Component.translatable("command.sportcraft.started"), true);

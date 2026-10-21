@@ -1,7 +1,9 @@
 package com.sportcraft.network.network_packet;
 
 import com.sportcraft.match.MatchManager;
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.network.NetworkEvent;
@@ -53,7 +55,7 @@ public class MatchControlC2S {
                     manager.start(durationSeconds > 0
                             ? durationSeconds : manager.getConfiguredDuration());
                     if (manager.getState() == com.sportcraft.match.MatchState.RUNNING) {
-                        manager.populateNpcs(level, player.server);
+                        announcePopulation(player, manager.populateNpcs(level, player.server));
                     }
                 }
                 case ACTION_PAUSE -> manager.pause();
@@ -69,5 +71,16 @@ public class MatchControlC2S {
             manager.broadcast(player.server);
         });
         context.setPacketHandled(true);
+    }
+
+    private static void announcePopulation(ServerPlayer player, MatchManager.PopulateResult result) {
+        Component referee = Component.translatable(result.referee()
+                ? "message.sportcraft.referee_present"
+                : "message.sportcraft.referee_missing");
+        player.sendSystemMessage(Component.translatable("message.sportcraft.teams_ready",
+                        result.redBots() + result.redPlayers(),
+                        result.blueBots() + result.bluePlayers(),
+                        referee)
+                .withStyle(ChatFormatting.GREEN));
     }
 }

@@ -1,6 +1,8 @@
 package com.sportcraft.entity;
 
 import com.sportcraft.match.BallType;
+import com.sportcraft.match.MatchManager;
+import com.sportcraft.registry.ModBlocks;
 import com.sportcraft.registry.ModEntities;
 import com.sportcraft.registry.ModItems;
 import com.sportcraft.registry.ModSounds;
@@ -8,6 +10,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
@@ -51,6 +54,7 @@ public class SoccerBallEntity extends Entity {
 
     private int kickCooldown;
     private int goalCooldown;
+    private int roofEscapeCooldown;
     private float visualYaw;
     private float visualRoll;
 
@@ -108,6 +112,7 @@ public class SoccerBallEntity extends Entity {
             setDeltaMovement(getDeltaMovement().multiply(
                     getBallType().getGroundFriction(), 1.0D, getBallType().getGroundFriction()));
         }
+        rescueFromGoalRoof();
         if (getDeltaMovement().lengthSqr() < 0.0008D && onGround()) {
             setDeltaMovement(Vec3.ZERO);
         }
@@ -236,15 +241,66 @@ public class SoccerBallEntity extends Entity {
 
     /** Called by the NPC brain when a bot reaches the ball. */
     public void kickFromMob(LivingEntity mob, Vec3 direction) {
+        kickFromMob(mob, direction, 1.05D, 0.24D);
+    }
+
+    /**
+     * Full-control variant used by the tactical brain: passes use a gentler
+     * speed, clearances and shots a stronger one. The upward component keeps
+     * the ball on the turf instead of launching it.
+     */
+    public void kickFromMob(LivingEntity mob, Vec3 direction, double speed, double upward) {
         if (kickCooldown > 0 || !isAlive() || direction.lengthSqr() < 1.0E-6D) {
             return;
         }
         Vec3 dir = direction.normalize();
-        setDeltaMovement(dir.x * 1.05D, 0.24D + Math.max(0.0D, -dir.y) * 0.2D, dir.z * 1.05D);
+        setDeltaMovement(dir.x * speed, upward + Math.max(0.0D, -dir.y) * 0.2D, dir.z * speed);
         visualYaw = mob.getYRot();
         kickCooldown = 8;
         hasImpulse = true;
         level().playSound(null, this, ModSounds.KICK.get(), SoundSource.PLAYERS, 0.9F, 1.0F);
+    }
+
+    /**
+     * Arced shot toward an elevated target (basketball hoop). The horizontal
+     * velocity aims at the target while {@code arc} supplies the lob, so the
+     * ball visibly flies over defenders and drops onto the rim.
+     */
+    public void shootAt(LivingEntity mob, Vec3 target, double speed, double arc) {
+        if (!isAlive()) {
+            return;
+        }
+        Vec3 diff = target.subtract(position());
+        Vec3 horizontal = new Vec3(diff.x, 0.0D, diff.z);
+        if (horizontal.lengthSqr() < 1.0E-6D) {
+            horizontal = new Vec3(-Math.sin(Math.toRadians(mob.getYRot())), 0.0D,
+                    Math.cos(Math.toRadians(mob.getYRot())));
+        }
+        Vec3 dir = horizontal.normalize();
+        setDeltaMovement(dir.x * speed, arc, dir.z * speed);
+        visualYaw = mob.getYRot();
+        kickCooldown = 10;
+        hasImpulse = true;
+        level().playSound(null, this, ModSounds.KICK.get(), SoundSource.PLAYERS, 1.0F, 0.85F);
+    }
+
+    /**
+     * Basketball dribble: a small forward-and-up nudge applied while the bot
+     * runs with the ball. The existing bounce physics return the ball to the
+     * ground, producing a visible bounce-carry rhythm. Deliberately bypasses
+     * the kick cooldown because it is an AI-timed contact, not a shot.
+     */
+    public void dribbleBounce(Vec3 direction) {
+        if (!isAlive()) {
+            return;
+        }
+        Vec3 dir = new Vec3(direction.x, 0.0D, direction.z);
+        if (dir.lengthSqr() < 1.0E-6D) {
+            return;
+        }
+        dir = dir.normalize();
+        setDeltaMovement(dir.x * 0.62D, 0.46D, dir.z * 0.62D);
+        hasImpulse = true;
     }
 
     /** Called by the goal detector after a scored goal to move the ball out. */
@@ -318,6 +374,45 @@ public class SoccerBallEntity extends Entity {
             setPos(getX(), getY() + 0.25D, getZ());
             escapeAttempts++;
         }
+    }
+
+    /**
+     * The multi-block goal has solid crossbar/back-net rows and the basketball
+     * hoop has a solid backboard, so a high ball can land and rest on top of
+     * the structure instead of returning to the pitch. Whenever the ball is
+     * grounded directly on one of those blocks, pop it back toward the field
+     * centre with a short cooldown so it can never get stuck on the roof.
+     */
+    private void rescueFromGoalRoof() {
+        if (roofEscapeCooldown > 0) {
+            roofEscapeCooldown--;
+            return;
+        }
+        if (!onGround() || !(level() instanceof ServerLevel serverLevel)) {
+            return;
+        }
+        BlockState below = level().getBlockState(blockPosition().below());
+        boolean onGoalStructure = below.is(ModBlocks.GOAL_POST.get())
+                || below.is(ModBlocks.GOAL_NET.get())
+                || below.is(Blocks.WHITE_CONCRETE);
+        if (!onGoalStructure) {
+            return;
+        }
+        BlockPos center = MatchManager.get(serverLevel).getFieldCenter();
+        if (center == null) {
+            return;
+        }
+        Vec3 inward = new Vec3(center.getX() + 0.5D - getX(), 0.0D,
+                center.getZ() + 0.5D - getZ());
+        if (inward.lengthSqr() < 1.0E-4D) {
+            return;
+        }
+        inward = inward.normalize();
+        setDeltaMovement(inward.x * 0.85D, 0.55D, inward.z * 0.85D);
+        roofEscapeCooldown = 25;
+        hasImpulse = true;
+        level().playSound(null, blockPosition(), ModSounds.BOUNCE.get(),
+                SoundSource.NEUTRAL, 0.8F, 0.8F);
     }
 
     private double[] resolveHorizontal(AABB box, Vec3 movement) {

@@ -24,6 +24,7 @@
 
   "key.categories.sportcraft": "SportCraft",
   "key.sportcraft.match_menu": "Open Match Menu",
+  "key.sportcraft.slide_tackle": "Slide Tackle",
 
   "team.sportcraft.red": "Home",
   "team.sportcraft.blue": "Away",
@@ -83,6 +84,12 @@
   "message.sportcraft.scoreboard_not_running": "No active match right now",
   "message.sportcraft.yellow_card": "%s received a yellow card",
   "message.sportcraft.red_card": "%s received a red card",
+  "message.sportcraft.teams_ready": "Teams ready: Home %1$s, Away %2$s — Referee: %3$s",
+  "message.sportcraft.referee_present": "on pitch",
+  "message.sportcraft.referee_missing": "missing",
+  "message.sportcraft.referee_kickoff": "Referee: Kick-off! Good game.",
+  "message.sportcraft.referee_goal": "Referee: GOAL! %1$s scores. Score %2$s - %3$s",
+  "message.sportcraft.referee_foul": "Referee: Foul! Free kick for %1$s.",
 
   "command.sportcraft.joined": "You joined %s",
   "command.sportcraft.unknown_team": "Unknown team: %s (use red, blue or spectator)",

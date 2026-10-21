@@ -57,7 +57,15 @@ için bkz. [`docs/HIGGSFIELD_PROMPTS.md`](docs/HIGGSFIELD_PROMPTS.md).
 
 | Kayıt adı | İşlev |
 |---|---|
-| `sportcraft:soccer_ball` | Sunucu taraflı fizik simülasyonu yapan futbol topu |
+| `sportcraft:soccer_ball` | Sunucu taraflı fizik simülasyonu yapan spor topu (futbol/basketbol) |
+| `sportcraft:soccer_npc` | AI oyuncu; takıma göre bot, kaleci veya sarı formalı hakem olarak doğar |
+
+### Hakem ve kararları
+- Her maç başında orta nokta yanında bir **hakem NPC'si** doğar (sarı forma, "Hakem" etiketi).
+- Hakem oyunu çizgi hakemi pozisyonundan takip eder; başlama düdüğü, gol ve faul
+  kararlarını düdük sesi + kaldırdığı kol animasyonu + sohbet duyurusu ile bildirir.
+- Fauller kayma müdahalelerinin temassız temasından sunucu tarafında üretilir;
+  hakem yalnızca `MatchManager`'daki olaylara tepki verir, kendisi skor üretemez.
 
 ## 4. Kontroller
 
@@ -68,6 +76,7 @@ için bkz. [`docs/HIGGSFIELD_PROMPTS.md`](docs/HIGGSFIELD_PROMPTS.md).
 | **Eğil + Sağ tık (topa)** | Topu envantere geri al |
 | **Sağ tık basılı tut (top eşyası)** | Atış gücünü şarj et, bırakınca fırlat (HUD'da güç çubuğu) |
 | **V tuşu** | Maç yönetim ekranını aç (kontrol ayarlarından değiştirilebilir) |
+| **C tuşu** | Kayarak müdahale (slide tackle): bakış yönüne hamle, temassız faul olabilir |
 | **Sağ tık (düdük)** | Maç yönetim ekranını aç |
 
 Tuş ataması Minecraft'ın standart **Seçenekler → Kontroller** menüsündeki
@@ -97,6 +106,11 @@ Tuş ataması Minecraft'ın standart **Seçenekler → Kontroller** menüsündek
 - Görsel olarak hareket yönüne dik eksende takla atar (`roll` interpolasyonu).
 - Vuruşlar 5 tick'lik soğuma ile çift vuruşları önler.
 - NBT ile kaydedilir; dünya kaydedilip açıldığında konum/durum korunur.
+- **Kale üstü kurtarma:** top bir kale direği/ağı bloğunun veya basketbol
+  panyasının üstünde durursa otomatik olarak sahaya doğru geri fırlatılır;
+  çok bloklu kalede crossbar üzerinde sıkışıp maçtan çıkamaz.
+- Görsel model 16 bantlı, çember denkleminden türetilmiş gerçek bir küredir
+  (eski 7 bantlı model gözle faklı görünüyordu).
 
 ### Kale ve gol sistemi (`GoalBlockEntity` + `SoccerGoalBlock`)
 - Kale bloğu yönelimlidir; yerleştirirken oyuncuya bakar, yani ağzı sahaya dönüktür.
@@ -115,6 +129,24 @@ Tuş ataması Minecraft'ın standart **Seçenekler → Kontroller** menüsündek
   durumu kendisi değiştiremez.
 - Maç kontrol paketleri sunucuda operatör yetkisi (seviye 2) ile doğrulanır;
   yetkisiz istemci paketi skora etki edemez.
+
+### Taktiksel AI ve animasyonlar (`NpcPlayGoal` + `RefereeGoal`)
+- Rol tabanlı beyin korunur: tek kovalayıcı, dizilişe yayılan destek oyuncuları,
+  ceza alanında açılan kaleci.
+- **Pas zekâsı:** baskı altındaki kovalayıcı, ileride boş takım arkadaşı varsa
+  şut yerine yumuşak pas atar; kaleci topu uzaktan uzaklaştırır.
+- **Kayarak müdahale:** botlar topa yakın rakip varken kayma hamlesi yapar
+  (özel yatık gövde/bacak animasyonu, toz parçacıkları); oyuncular **C** tuşu
+  ile aynı mekaniği kullanır. Topa uzak temas faulle sonuçlanır, serbest vuruş
+  için top yavaşlatılır.
+- **Basketbol:** kovalayıcı topu sektire sektire (dribble) potaya taşır,
+  rakip yakınken yana kaçma çalımı (crossover) atar ve atış mesafesinde yaylı
+  şut çıkar; dribble sırasında pompalayan kol animasyonu oynar.
+- Hakem kol kaldırma, kayma ve dribble animasyonları `NpcPlayerModel` içinde
+  vanilla oyuncu modeli üzerinde, senkronize entity verisi ile çalışır.
+- Yeni saha kurulumunda eski takım atamaları sıfırlanır; bot doğumları
+  çarpışmasız nokta denemeleri ve `addFreshEntity` geri bildirimi ile yapılır,
+  böylece 1v1 dahil her boyutta eksik bot kalmaz.
 
 ### Arayüz
 - Üst orta skorbord: takım isimleri, skor, durum, süre, kendi takımın.

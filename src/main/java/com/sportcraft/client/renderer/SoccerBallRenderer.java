@@ -39,7 +39,7 @@ public class SoccerBallRenderer extends EntityRenderer<SoccerBallEntity> {
     public SoccerBallRenderer(EntityRendererProvider.Context context) {
         super(context);
         this.model = new BallModel();
-        this.shadowRadius = 0.25F;
+        this.shadowRadius = 0.3F;
     }
 
     @Override
