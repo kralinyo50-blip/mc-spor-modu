@@ -2,7 +2,7 @@ package com.sportcraft.client.renderer;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import org.joml.Vector3f;
+import org.joml.Quaternionf;
 import com.sportcraft.SportCraft;
 import com.sportcraft.client.model.BallModel;
 import com.sportcraft.entity.SoccerBallEntity;
@@ -42,7 +42,9 @@ public class SoccerBallRenderer extends EntityRenderer<SoccerBallEntity> {
         float roll = entity.getVisualRoll(partialTick);
         float axisX = Mth.cos((float) Math.toRadians(yaw));
         float axisZ = -Mth.sin((float) Math.toRadians(yaw));
-        poseStack.mulPose(new Vector3f(axisX, 0.0F, axisZ).rotationDegrees(roll));
+        // JOML 1.10.5 (MC 1.20.1): setAngleAxis takes radians; same pattern as BoatRenderer.
+        poseStack.mulPose(new Quaternionf().setAngleAxis(
+                (float) Math.toRadians(roll), axisX, 0.0F, axisZ));
 
         VertexConsumer consumer = bufferSource.getBuffer(RenderType.entityCutoutNoCull(TEXTURE));
         model.renderToBuffer(poseStack, consumer, packedLight, OverlayTexture.NO_OVERLAY,

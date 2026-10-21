@@ -1,13 +1,14 @@
 package com.sportcraft.event;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.sportcraft.match.MatchManager;
 import com.sportcraft.match.Team;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
-import net.minecraft.commands.arguments.IntegerArgumentType;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -23,11 +24,11 @@ public class SportCraftCommand {
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("sportcraft")
                 .then(Commands.literal("join")
-                        .then(Commands.argument("team", net.minecraft.commands.arguments.StringArgumentType.word())
+                        .then(Commands.argument("team", StringArgumentType.word())
                                 .suggests((context, builder) ->
                                         SharedSuggestionProvider.suggest(new String[]{"red", "blue", "spectator"}, builder))
                                 .executes(context -> joinTeam(context.getSource(),
-                                        net.minecraft.commands.arguments.StringArgumentType.getString(context, "team")))))
+                                        StringArgumentType.getString(context, "team")))))
                 .then(Commands.literal("start")
                         .requires(source -> source.hasPermission(2))
                         .then(Commands.argument("minutes", IntegerArgumentType.integer(1, 120))

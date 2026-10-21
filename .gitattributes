@@ -1,0 +1,12 @@
+# Windows batch dosyalari: CRLF blob icinde de korunmali
+# (GitHub ZIP indirmesinde dahi dogru satir sonu garanti olsun)
+*.bat -text
+*.cmd -text
+
+# Unix kabuk betikleri her zaman LF
+gradlew text eol=lf
+*.sh text eol=lf
+
+# Ikili dosyalar
+*.jar binary
+*.png binary

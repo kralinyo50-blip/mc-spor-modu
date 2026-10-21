@@ -21,3 +21,6 @@ src/generated/
 # OS / misc
 .DS_Store
 *.log
+
+# JAR-YAP.bat cikti klasoru
+/JAR/
