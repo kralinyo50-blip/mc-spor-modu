@@ -250,9 +250,10 @@ public class SoccerBallEntity extends Entity {
 
         // Vertical collision: floor and ceiling.
         if (movement.y <= 0.0D) {
-            AABB swept = box.expandTowards(0.0D, movement.y, 0.0D);
+            final AABB current = box;
+            AABB swept = current.expandTowards(0.0D, movement.y, 0.0D);
             double floor = collisionStream(swept)
-                    .map(shape -> shape.bounds().minY).filter(y -> y <= box.minY)
+                    .map(shape -> shape.bounds().minY).filter(y -> y <= current.minY)
                     .max(Double::compare).orElse(Double.NEGATIVE_INFINITY);
             if (floor != Double.NEGATIVE_INFINITY) {
                 setPos(getX(), floor + BALL_RADIUS, getZ());
@@ -270,9 +271,10 @@ public class SoccerBallEntity extends Entity {
                 this.setOnGround(false);
             }
         } else {
-            AABB swept = box.expandTowards(0.0D, movement.y, 0.0D);
+            final AABB current = box;
+            AABB swept = current.expandTowards(0.0D, movement.y, 0.0D);
             double ceiling = collisionStream(swept)
-                    .map(shape -> shape.bounds().maxY).filter(y -> y >= box.maxY)
+                    .map(shape -> shape.bounds().maxY).filter(y -> y >= current.maxY)
                     .min(Double::compare).orElse(Double.POSITIVE_INFINITY);
             if (ceiling != Double.POSITIVE_INFINITY) {
                 setPos(getX(), ceiling - BALL_RADIUS, getZ());
@@ -292,36 +294,38 @@ public class SoccerBallEntity extends Entity {
         double moveX = movement.x;
         double moveZ = movement.z;
         if (moveX != 0.0D) {
-            AABB swept = box.expandTowards(moveX, 0.0D, 0.0D);
+            final AABB current = box;
+            AABB swept = current.expandTowards(moveX, 0.0D, 0.0D);
             double limit = moveX > 0.0D
                     ? collisionStream(swept).map(shape -> shape.bounds().maxX)
-                            .filter(x -> x >= box.maxX).min(Double::compare).orElse(Double.POSITIVE_INFINITY)
+                            .filter(x -> x >= current.maxX).min(Double::compare).orElse(Double.POSITIVE_INFINITY)
                     : collisionStream(swept).map(shape -> shape.bounds().minX)
-                            .filter(x -> x <= box.minX).max(Double::compare).orElse(Double.NEGATIVE_INFINITY);
+                            .filter(x -> x <= current.minX).max(Double::compare).orElse(Double.NEGATIVE_INFINITY);
             if (moveX > 0.0D && limit != Double.POSITIVE_INFINITY) {
-                moveX = limit - box.maxX - 0.001D;
+                moveX = limit - current.maxX - 0.001D;
                 setDeltaMovement(-getDeltaMovement().x * getBallType().getWallDamping(),
                         getDeltaMovement().y, getDeltaMovement().z);
             } else if (moveX < 0.0D && limit != Double.NEGATIVE_INFINITY) {
-                moveX = limit - box.minX + 0.001D;
+                moveX = limit - current.minX + 0.001D;
                 setDeltaMovement(-getDeltaMovement().x * getBallType().getWallDamping(),
                         getDeltaMovement().y, getDeltaMovement().z);
             }
         }
         if (moveZ != 0.0D) {
-            box = getBoundingBox();
-            AABB swept = box.expandTowards(0.0D, 0.0D, moveZ);
+            // X movement may have repositioned the entity; re-read the box as a final snapshot.
+            final AABB current = getBoundingBox();
+            AABB swept = current.expandTowards(0.0D, 0.0D, moveZ);
             double limit = moveZ > 0.0D
                     ? collisionStream(swept).map(shape -> shape.bounds().maxZ)
-                            .filter(z -> z >= box.maxZ).min(Double::compare).orElse(Double.POSITIVE_INFINITY)
+                            .filter(z -> z >= current.maxZ).min(Double::compare).orElse(Double.POSITIVE_INFINITY)
                     : collisionStream(swept).map(shape -> shape.bounds().minZ)
-                            .filter(z -> z <= box.minZ).max(Double::compare).orElse(Double.NEGATIVE_INFINITY);
+                            .filter(z -> z <= current.minZ).max(Double::compare).orElse(Double.NEGATIVE_INFINITY);
             if (moveZ > 0.0D && limit != Double.POSITIVE_INFINITY) {
-                moveZ = limit - box.maxZ - 0.001D;
+                moveZ = limit - current.maxZ - 0.001D;
                 setDeltaMovement(getDeltaMovement().x, getDeltaMovement().y,
                         -getDeltaMovement().z * getBallType().getWallDamping());
             } else if (moveZ < 0.0D && limit != Double.NEGATIVE_INFINITY) {
-                moveZ = limit - box.minZ + 0.001D;
+                moveZ = limit - current.minZ + 0.001D;
                 setDeltaMovement(getDeltaMovement().x, getDeltaMovement().y,
                         -getDeltaMovement().z * getBallType().getWallDamping());
             }
