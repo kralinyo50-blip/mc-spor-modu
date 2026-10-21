@@ -1,0 +1,6 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": ["W", "W"],
+  "key": {"W": {"item": "minecraft:red_wool"}},
+  "result": {"item": "sportcraft:red_seat", "count": 2}
+}

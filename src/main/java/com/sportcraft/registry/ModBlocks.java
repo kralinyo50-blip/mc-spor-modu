@@ -3,6 +3,8 @@ package com.sportcraft.registry;
 import com.sportcraft.SportCraft;
 import com.sportcraft.block.ArtificialTurfBlock;
 import com.sportcraft.block.FieldLineBlock;
+import com.sportcraft.block.ScoreboardBlock;
+import com.sportcraft.block.SeatBlock;
 import com.sportcraft.block.SoccerGoalBlock;
 import com.sportcraft.match.Team;
 import net.minecraft.world.level.block.Block;
@@ -42,6 +44,25 @@ public class ModBlocks {
                     .mapColor(MapColor.COLOR_BLUE)
                     .strength(2.0F)
                     .sound(SoundType.METAL)
+                    .noOcclusion()));
+
+    public static final RegistryObject<Block> RED_SEAT = BLOCKS.register("red_seat",
+            () -> new SeatBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.COLOR_RED)
+                    .strength(0.8F)
+                    .sound(SoundType.WOOD)));
+
+    public static final RegistryObject<Block> BLUE_SEAT = BLOCKS.register("blue_seat",
+            () -> new SeatBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.COLOR_BLUE)
+                    .strength(0.8F)
+                    .sound(SoundType.WOOD)));
+
+    public static final RegistryObject<Block> SCOREBOARD = BLOCKS.register("scoreboard",
+            () -> new ScoreboardBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.WOOD)
+                    .strength(1.5F)
+                    .sound(SoundType.WOOD)
                     .noOcclusion()));
 
     private ModBlocks() {

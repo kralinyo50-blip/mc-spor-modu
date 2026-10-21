@@ -10,22 +10,27 @@ import net.minecraftforge.network.NetworkEvent;
 import java.util.function.Supplier;
 
 /**
- * Client asks the server to put the sender into a team (or spectator slot).
+ * Client asks the server to put the sender into a team (or spectator slot)
+ * and optionally mark them as that team's goalkeeper.
  */
 public class JoinTeamC2S {
 
     private final Team team;
+    private final boolean keeper;
 
-    public JoinTeamC2S(Team team) {
+    public JoinTeamC2S(Team team, boolean keeper) {
         this.team = team;
+        this.keeper = keeper;
     }
 
     public JoinTeamC2S(FriendlyByteBuf buffer) {
         this.team = Team.byOrdinal(buffer.readByte());
+        this.keeper = buffer.readBoolean();
     }
 
     public void encode(FriendlyByteBuf buffer) {
         buffer.writeByte(team.ordinal());
+        buffer.writeBoolean(keeper);
     }
 
     public void handle(Supplier<NetworkEvent.Context> contextSupplier) {
@@ -37,6 +42,7 @@ public class JoinTeamC2S {
             }
             MatchManager manager = MatchManager.get((ServerLevel) player.level());
             manager.setTeam(player.getUUID(), team);
+            manager.setKeeper(player.getUUID(), keeper && team != Team.SPECTATOR);
             manager.broadcast(player.server);
         });
         context.setPacketHandled(true);

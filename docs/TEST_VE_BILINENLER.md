@@ -1,5 +1,39 @@
 # Test Durumu ve Bilinen Sınırlamalar
 
+## v2: Referans mod ekran görüntülerine göre yeni özellikler
+
+Bu turda eklenenler (tümü sunucu-otoriteli, 1.20.1 kaynak aynasından API
+doğrulamalı):
+
+1. **Çok sporlu top:** `BallType` (Futbol, Basketbol) tek entity'de synched
+   data byte'ı (`EntityDataSerializers.BYTE`) ile tutulur; her tipin kendi
+   fizik sönümleme değerleri ve dokusu vardır (`entity/soccer_ball.png`,
+   `entity/basketball_ball.png`). Yaratıcı sekmede ayrı futbol ve basketbol
+   topu eşyası; sağ tık şarjlı atış her ikisinde çalışır.
+2. **Tek tıkla «Sahayı Kur»:** `FieldBuilder` oyuncunun durduğu bloğu merkez
+   alarak üç boyut presetinden (Küçük 17x25, Orta 27x41, Büyük 45x71) saha
+   inşa eder: suni çim zemin, beyaz halı çizgileri (kenar, orta saha, orta
+   daire, ceza alanı), yöne doğru bakan kırmızı/mavi kaleler, iki yanda
+   koltuk sıraları ve skor tabelası. Yalnız hava/bitki/kar ve doğal zemin
+   blokları değiştirilir; komşu yapılar korunur.
+3. **Yeni kurulum GUI'si (V tuşu / düdük):** referans ekrandaki düzen —
+   Spor, Saha, Takım (n v n), Zorluk, Devre (dk), Beraberlik kuralı, Ev/Dep.
+   dizilişi seçenekleri tıkla-ileri / Shift+tık-geri döngüsüyle çalışır;
+   «Sahayı Kur», katıl/kaleci/ayrıl butonları ve maç kontrolleri aynı ekranda.
+   Maç başlatma, saha kurulmadan pasiftir.
+4. **Yeni blok/eşyalar:** kırmızı/mavi koltuk, skor tabelası (sağ tık skoru
+   action bar'a yazar), sarı/kırmızı kart (ses + mesaj), hepsi için model,
+   blockstate, loot table ve crafting tarifi; EN/TR dil kayıtları tam.
+5. **Genişletilmiş maç durumu:** beraberlikte tek seferlik 2 dk uzatma
+   (`DrawRule.EXTRA_TIME`), kaleci işaretleri, tüm ayarların SavedData
+   kalıcılığı ve yeni ağ paketi protokolü (sürüm "2"; eski kayıtlar varsayılan
+   değerlerle sorunsuz yüklenir).
+
+Bilinen sınır (kasıtlı, görüntüde doğrulanamayan kısım): diziliş ve zorluk
+değerleri kaydedilip senkronize ediliyor ancak **NPC oyuncu AI'sı henüz yok**;
+takımlar gerçek oyuncularla doluyor. NPC varlıkları bir sonraki milestonun
+konusudur (`Formation` enum'u bu yüzden zaten mevcut).
+
 ## Bu ortamda ne test edilebildi?
 
 Geliştirme sandbox'ında JDK kurulu değildi ve Forge Maven
@@ -69,18 +103,28 @@ ve oyun içi çalıştırma **yapılamadı**. Bunun yerine aşağıdaki statik d
 
 ### Önerilen manuel test listesi
 
-- [ ] Yaratıcı sekmede 6 nesnenin tamamı görünüyor ve ikonlar doğru.
+- [ ] Yaratıcı sekmede 12 nesnenin tamamı (2 top, düdük, 2 kart, 4 saha
+      bloğu, 2 koltuk, skor tabelası) görünüyor ve ikonlar doğru.
+- [ ] Futbol ve basketbol topu ayrı doku/fizikle fırlatılıp sektirilebiliyor.
 - [ ] Top eşyası şarj edilip fırlatılınca entity oluşuyor, yere düşüp sekiyor.
-- [ ] Sol tık ile güçlü, sağ tık ile yumuşak vuruş; eğil+sağ tık ile toplama.
+- [ ] Sol tık ile güçlü, sağ tık ile yumuşak vuruş; eğil+sağ tık ile toplama
+      (toplanan eşya tipi atılan top tipiyle aynı olmalı).
 - [ ] Top duvara çarpınca doğru eksende sekip zeminde duruyor (titreşim yok).
+- [ ] Kurulum ekranında «Sahayı Kur»: üç boyut preseti de doğru blokları,
+      çizgileri, karşı bakan kaleleri, koltukları ve tabelayı yerleştiriyor.
+- [ ] Saha yokken «Maçı Başlat» pasif; kurulduktan sonra aktif oluyor.
+- [ ] Ayar butonları tıkla ileri, Shift+tık geri dönüyor; yetkisiz oyuncunun
+      değişikliği sunucuda uygulanmıyor.
 - [ ] Kırmızı/mavi kaleler doğru yönle yerleşiyor, file dokusu saydam görünüyor.
 - [ ] Top kale bölgesine girince gol sesi, skor artışı ve topun spawn'a dönmesi.
-- [ ] Maç ekranı (V tuşu): takım seçimi, başlatma, duraklat, sıfırla.
+- [ ] Maç ekranı (V tuşu): takım/kaleci seçimi, başlatma, duraklat, sıfırla.
+- [ ] Skor tabelasına sağ tık action bar'da skoru gösteriyor.
+- [ ] Beraberlik + uzatma kuralı: süre dolunca 2 dk uzama, ikinci doluşta bitiş.
 - [ ] HUD skorbord ve süre geri sayımı çalışıyor.
 - [ ] Süre bitince durum `Bitti` oluyor, goller skora işlemiyor.
-- [ ] Dünyayı kaydet/aç: maç durumu ve top korunuyor.
+- [ ] Dünyayı kaydet/aç: maç durumu, ayarlar, saha baygası ve top korunuyor.
 - [ ] İki istemcili dedicated sunucu: vuruşlar ve skor her ikisinde tutarlı.
-- [ ] Yetkisiz oyuncu maç kontrol paketi gönderince değişiklik olmuyor.
+- [ ] Yetkisiz oyuncu maç kontrol / saha kurma paketi gönderince değişiklik olmuyor.
 - [ ] Tüm crafting tarifleri beklenen çıktıyı veriyor; blok kırılınca eşya düşüyor.
 
 ## Bilinen sınırlamalar ve tasarım tercihleri

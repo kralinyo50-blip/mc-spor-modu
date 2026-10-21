@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "sportcraft:block/red_seat",
+    "particle": "sportcraft:block/red_seat"
+  }
+}

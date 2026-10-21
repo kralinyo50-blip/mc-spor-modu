@@ -1,0 +1,10 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": ["PPP", "IBI", "PPP"],
+  "key": {
+    "P": {"item": "minecraft:oak_planks"},
+    "I": {"item": "minecraft:iron_ingot"},
+    "B": {"item": "minecraft:ink_sac"}
+  },
+  "result": {"item": "sportcraft:scoreboard", "count": 1}
+}

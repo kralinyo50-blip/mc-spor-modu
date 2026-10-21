@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": ["P", "D"],
+  "key": {
+    "P": {"item": "minecraft:paper"},
+    "D": {"item": "minecraft:red_dye"}
+  },
+  "result": {"item": "sportcraft:red_card", "count": 1}
+}

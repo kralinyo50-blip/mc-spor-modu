@@ -1,5 +1,6 @@
 package com.sportcraft.client;
 
+import com.sportcraft.match.MatchSettings;
 import com.sportcraft.match.MatchState;
 import com.sportcraft.match.Team;
 
@@ -16,17 +17,24 @@ public final class ClientMatchData {
     private int blueScore;
     private int remainingSeconds;
     private Team localTeam = Team.SPECTATOR;
+    private boolean localKeeper;
+    private boolean fieldBuilt;
+    private MatchSettings settings = new MatchSettings();
 
     private ClientMatchData() {
     }
 
     public static void update(MatchState state, int redScore, int blueScore,
-                              int remainingSeconds, Team localTeam) {
+                              int remainingSeconds, Team localTeam, boolean localKeeper,
+                              boolean fieldBuilt, MatchSettings settings) {
         INSTANCE.state = state;
         INSTANCE.redScore = redScore;
         INSTANCE.blueScore = blueScore;
         INSTANCE.remainingSeconds = remainingSeconds;
         INSTANCE.localTeam = localTeam;
+        INSTANCE.localKeeper = localKeeper;
+        INSTANCE.fieldBuilt = fieldBuilt;
+        INSTANCE.settings = settings;
     }
 
     public boolean isActive() {
@@ -51,5 +59,17 @@ public final class ClientMatchData {
 
     public Team getLocalTeam() {
         return localTeam;
+    }
+
+    public boolean isLocalKeeper() {
+        return localKeeper;
+    }
+
+    public boolean isFieldBuilt() {
+        return fieldBuilt;
+    }
+
+    public MatchSettings getSettings() {
+        return settings;
     }
 }
