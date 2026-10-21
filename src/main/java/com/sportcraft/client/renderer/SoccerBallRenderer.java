@@ -47,8 +47,8 @@ public class SoccerBallRenderer extends EntityRenderer<SoccerBallEntity> {
                        MultiBufferSource bufferSource, int packedLight) {
         ResourceLocation texture = getTextureLocation(entity);
         poseStack.pushPose();
-        // Entity origin is at the feet; the 0.5-block cube must be centred vertically.
-        poseStack.translate(0.0D, 0.25D, 0.0D);
+        // Sphere model is centred on the origin; align it with the 0.32 collision centre.
+        poseStack.translate(0.0D, 0.32D, 0.0D);
 
         float yaw = entity.getVisualYaw();
         float roll = entity.getVisualRoll(partialTick);

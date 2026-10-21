@@ -1,15 +1,24 @@
 package com.sportcraft.match;
 
+import com.sportcraft.entity.SoccerNpcEntity;
 import com.sportcraft.network.ModNetwork;
 import com.sportcraft.network.network_packet.MatchStateS2C;
+import com.sportcraft.registry.ModEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.item.DyeableLeatherItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.network.PacketDistributor;
 
 import java.util.HashMap;
@@ -43,6 +52,12 @@ public class MatchManager extends SavedData {
     private BlockPos fieldCenter;
     private boolean extraTimeUsed;
     private int tickCounter;
+    private final Set<UUID> npcIds = new HashSet<>();
+
+    private static final String[] NPC_NAMES = {"Selim", "Umut", "Mert", "Emre", "Kaan", "Arda", "Deniz", "Can"};
+    private static final int KIT_RED = 0xC02626;
+    private static final int KIT_BLUE = 0x274FC0;
+    private static final int KIT_KEEPER = 0x2E8B46;
 
     public MatchManager() {
         this.remainingSeconds = settings.getHalfLengthSeconds();
@@ -184,6 +199,113 @@ public class MatchManager extends SavedData {
         tickCounter = 0;
         extraTimeUsed = false;
         setDirty();
+    }
+
+    /**
+     * Goal-line centre for the given team's own goal, derived from the stored
+     * field geometry so NPCs and other logic never hard-code coordinates.
+     */
+    public BlockPos getGoalPosition(Team team) {
+        if (fieldCenter == null) {
+            return null;
+        }
+        int halfL = settings.getFieldSize().getLength() / 2;
+        int offsetZ = team == Team.RED ? -halfL : halfL;
+        return new BlockPos(fieldCenter.getX(), fieldCenter.getY(), fieldCenter.getZ() + offsetZ);
+    }
+
+    /**
+     * Fills both teams up to the configured team size with AI bots. Real,
+     * online players already on a team reduce the number of bots spawned.
+     */
+    public void populateNpcs(ServerLevel level, MinecraftServer server) {
+        clearNpcs(level);
+        if (fieldCenter == null) {
+            return;
+        }
+        ensureKickoffBall(level);
+        int target = settings.getTeamSize();
+        spawnTeamNpcs(level, Team.RED, Math.max(0, target - countRealPlayers(server, Team.RED)));
+        spawnTeamNpcs(level, Team.BLUE, Math.max(0, target - countRealPlayers(server, Team.BLUE)));
+        setDirty();
+    }
+
+    /** Spawns the configured ball type at the centre spot when the pitch has none. */
+    private void ensureKickoffBall(ServerLevel level) {
+        AABB searchArea = new AABB(fieldCenter).inflate(64.0D);
+        if (!level.getEntitiesOfClass(com.sportcraft.entity.SoccerBallEntity.class, searchArea).isEmpty()) {
+            return;
+        }
+        Vec3 kickoff = Vec3.atBottomCenterOf(fieldCenter).add(0.0D, 1.0D, 0.0D);
+        com.sportcraft.entity.SoccerBallEntity.spawn(level, kickoff, settings.getSport());
+    }
+
+    /** Removes every bot tracked by this manager from the world. */
+    public void clearNpcs(ServerLevel level) {
+        for (UUID id : npcIds) {
+            if (level.getEntity(id) instanceof SoccerNpcEntity npc) {
+                npc.discard();
+            }
+        }
+        npcIds.clear();
+    }
+
+    private int countRealPlayers(MinecraftServer server, Team team) {
+        int count = 0;
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            if (getTeam(player.getUUID()) == team) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private void spawnTeamNpcs(ServerLevel level, Team team, int count) {
+        if (count <= 0) {
+            return;
+        }
+        BlockPos goal = getGoalPosition(team);
+        if (goal == null) {
+            return;
+        }
+        int inward = team == Team.RED ? 1 : -1;
+        for (int i = 0; i < count; i++) {
+            boolean keeper = i == 0;
+            int number = i + 1;
+            int x = fieldCenter.getX() + Math.round((i - (count - 1) / 2.0F) * 2.5F);
+            int z = keeper
+                    ? goal.getZ() + inward * 2
+                    : goal.getZ() + inward * (7 + (i % 3) * 4);
+            SoccerNpcEntity npc = ModEntities.SOCCER_NPC.get().create(level);
+            if (npc == null) {
+                return;
+            }
+            npc.moveTo(x + 0.5D, goal.getY(), z + 0.5D, 0.0F, 0.0F);
+            npc.setSportTeam(team);
+            npc.setKeeper(keeper);
+            npc.setPersistenceRequired();
+            npc.setCustomName(Component.literal(number + " " + NPC_NAMES[(number - 1) % NPC_NAMES.length]));
+            npc.setCustomNameVisible(true);
+            equipKit(npc, team, keeper);
+            level.addFreshEntity(npc);
+            npcIds.add(npc.getUUID());
+        }
+    }
+
+    private void equipKit(SoccerNpcEntity npc, Team team, boolean keeper) {
+        int color = keeper ? KIT_KEEPER : team == Team.RED ? KIT_RED : KIT_BLUE;
+        ItemStack chest = new ItemStack(Items.LEATHER_CHESTPLATE);
+        ((DyeableLeatherItem) chest.getItem()).setColor(chest, color);
+        ItemStack legs = new ItemStack(Items.LEATHER_LEGGINGS);
+        ((DyeableLeatherItem) legs.getItem()).setColor(legs, 0x1E1E24);
+        ItemStack boots = new ItemStack(Items.LEATHER_BOOTS);
+        ((DyeableLeatherItem) boots.getItem()).setColor(boots, 0x202020);
+        npc.setItemSlot(EquipmentSlot.CHEST, chest);
+        npc.setItemSlot(EquipmentSlot.LEGS, legs);
+        npc.setItemSlot(EquipmentSlot.FEET, boots);
+        npc.setDropChance(EquipmentSlot.CHEST, 0.0F);
+        npc.setDropChance(EquipmentSlot.LEGS, 0.0F);
+        npc.setDropChance(EquipmentSlot.FEET, 0.0F);
     }
 
     public void broadcast(MinecraftServer server) {

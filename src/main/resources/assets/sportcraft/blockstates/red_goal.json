@@ -1,20 +1,8 @@
 {
   "variants": {
-    "facing=north": {
-      "model": "sportcraft:block/red_goal",
-      "y": 0
-    },
-    "facing=east": {
-      "model": "sportcraft:block/red_goal",
-      "y": 90
-    },
-    "facing=south": {
-      "model": "sportcraft:block/red_goal",
-      "y": 180
-    },
-    "facing=west": {
-      "model": "sportcraft:block/red_goal",
-      "y": 270
-    }
+    "facing=north": {"model": "sportcraft:block/goal_sensor"},
+    "facing=east": {"model": "sportcraft:block/goal_sensor"},
+    "facing=south": {"model": "sportcraft:block/goal_sensor"},
+    "facing=west": {"model": "sportcraft:block/goal_sensor"}
   }
 }

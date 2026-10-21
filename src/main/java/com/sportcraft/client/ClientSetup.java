@@ -1,7 +1,9 @@
 package com.sportcraft.client;
 
 import com.sportcraft.SportCraft;
+import com.sportcraft.client.renderer.SeatRenderer;
 import com.sportcraft.client.renderer.SoccerBallRenderer;
+import com.sportcraft.client.renderer.SoccerNpcRenderer;
 import com.sportcraft.registry.ModBlocks;
 import com.sportcraft.registry.ModEntities;
 import net.minecraft.client.renderer.RenderType;
@@ -15,7 +17,7 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 
 /**
- * Client-only mod-bus registrations: entity renderer, key mapping, HUD overlay
+ * Client-only mod-bus registrations: entity renderers, key mapping, HUD overlay
  * and the cutout render layer for the net / field line blocks.
  */
 @Mod.EventBusSubscriber(modid = SportCraft.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
@@ -24,6 +26,8 @@ public class ClientSetup {
     @SubscribeEvent
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerEntityRenderer(ModEntities.SOCCER_BALL.get(), SoccerBallRenderer::new);
+        event.registerEntityRenderer(ModEntities.SEAT.get(), SeatRenderer::new);
+        event.registerEntityRenderer(ModEntities.SOCCER_NPC.get(), SoccerNpcRenderer::new);
     }
 
     @SubscribeEvent
@@ -42,6 +46,9 @@ public class ClientSetup {
             ItemBlockRenderTypes.setRenderLayer(ModBlocks.RED_GOAL.get(), RenderType.cutout());
             ItemBlockRenderTypes.setRenderLayer(ModBlocks.BLUE_GOAL.get(), RenderType.cutout());
             ItemBlockRenderTypes.setRenderLayer(ModBlocks.FIELD_LINE.get(), RenderType.cutout());
+            ItemBlockRenderTypes.setRenderLayer(ModBlocks.GOAL_NET.get(), RenderType.cutout());
+            ItemBlockRenderTypes.setRenderLayer(ModBlocks.RED_SEAT.get(), RenderType.cutout());
+            ItemBlockRenderTypes.setRenderLayer(ModBlocks.BLUE_SEAT.get(), RenderType.cutout());
         });
     }
 }

@@ -2,11 +2,14 @@
   "itemGroup.sportcraft.sportcraft_tab": "MC Spor",
 
   "block.sportcraft.artificial_turf": "Suni Çim",
+  "block.sportcraft.artificial_turf_dark": "Koyu Suni Çim",
   "block.sportcraft.field_line": "Saha Çizgisi",
-  "block.sportcraft.red_goal": "Kırmızı Kale",
-  "block.sportcraft.blue_goal": "Mavi Kale",
-  "block.sportcraft.red_seat": "Kırmızı Koltuk",
-  "block.sportcraft.blue_seat": "Mavi Koltuk",
+  "block.sportcraft.red_goal": "Kale Algılayıcısı (Kırmızı)",
+  "block.sportcraft.blue_goal": "Kale Algılayıcısı (Mavi)",
+  "block.sportcraft.goal_post": "Kale Direği",
+  "block.sportcraft.goal_net": "Kale Ağı",
+  "block.sportcraft.red_seat": "Kırmızı Stadyum Koltuğu",
+  "block.sportcraft.blue_seat": "Mavi Stadyum Koltuğu",
   "block.sportcraft.scoreboard": "Skor Tabelası",
 
   "item.sportcraft.soccer_ball": "Futbol Topu",
@@ -16,6 +19,8 @@
   "item.sportcraft.red_card": "Kırmızı Kart",
 
   "entity.sportcraft.soccer_ball": "Spor Topu",
+  "entity.sportcraft.soccer_npc": "AI Futbolcu",
+  "entity.sportcraft.seat": "Oturma Yeri",
 
   "key.categories.sportcraft": "SportCraft",
   "key.sportcraft.match_menu": "Maç Menüsünü Aç",

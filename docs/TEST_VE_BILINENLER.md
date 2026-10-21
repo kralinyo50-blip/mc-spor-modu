@@ -1,5 +1,33 @@
 # Test Durumu ve Bilinen Sınırlamalar
 
+## v3: Stadyum, çok bloklu kaleler, oturulur koltuklar ve AI futbolcular
+
+Kullanıcının yeni ekran görüntüleri (stadyum genel görünümü, fileli kale,
+yuvarlak top, isim etiketli bot oyuncular) doğrultusunda:
+
+1. **Kale inşası hatası giderildi.** Eski sürümde kale çizgisine önce halı
+   bloğu konduğu için kale bloğu sessizce yerleşmiyordu. Artık `FieldBuilder`
+   gerçek çok bloklu kale inşa ediyor: 5 genişlik × 3 yükseklik ağız, beyaz
+   `goal_post` direkleri ve üst direk, `goal_net` bloklarıyla arka/yan/tavan
+   ağı. Hatta algılama eski `SoccerGoalBlock` ile yapılıyor; bu blok artık
+   görünmez ve çarpışmasızdır (sadece `GoalBlockEntity` sensörü olarak çalışır).
+2. **Sandalye biçimli, oturulur koltuklar.** `SeatBlock` dört bacak + oturak +
+   sırtlıktan oluşan VoxelShape ve modele sahip; sağ tık oyuncuyu görünmez
+   `SeatEntity` bineğine oturtur (vanilya oturma pozu), inince varlık silinir.
+3. **AI futbolcular (`SoccerNpcEntity` + `NpcPlayGoal`).** Maç başlayınca
+   takımlar seçilen takım boyuna (örn. 5v5) gerçek oyuncu sayısı dikkate
+   alınarak botlarla doldurulur; botlar topu kovalar, rakip kaleye şut atar,
+   kaleciler kendi kalelerini korur. Boyanmış deri zırhla forma giyerler,
+   numara + isim etiketi taşırlar, hasar almazlar ve dünyaya kaydedilmezler.
+   Sıfırlama/maç bitince temizlenirler.
+4. **Yuvarlak top.** Küp model, yedi katmanlı düşük poligonlu küre modele
+   dönüştü (64x32 doku); futbol ve basketbol dokuları buna göre yenilendi.
+5. **Geliştirilmiş stadyum inşası:** çift renkli çim şeritleri, atletizm
+   pisti (kırmızı beton halka), reklam panoları, dört köşe bayrağı, dört
+   projektör direği, iki yedek kulübesi, basamaklı kırmızı/mavi tribünler,
+   kenarda skor tabelası; gol sonrası top dünya spawn'ı yerine saha merkezine
+   döner; maç başında ortada top yoksa otomatik konur.
+
 ## v2: Referans mod ekran görüntülerine göre yeni özellikler
 
 Bu turda eklenenler (tümü sunucu-otoriteli, 1.20.1 kaynak aynasından API

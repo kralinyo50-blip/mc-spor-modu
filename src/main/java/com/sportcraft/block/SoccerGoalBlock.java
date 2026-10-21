@@ -6,6 +6,7 @@ import com.sportcraft.registry.ModBlockEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
@@ -16,12 +17,15 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * A goal mouth block. Its {@link GoalBlockEntity} scans the region in front of
- * the block (3 wide, 2 tall, 1.5 deep) for soccer balls and turns a crossing
- * ball into an actual, server-validated goal.
+ * Invisible, non-colliding goal <b>sensor</b>. The visible stadium goal is the
+ * multi-block post + net structure placed by the field constructor; this block
+ * only owns the {@link GoalBlockEntity} that detects balls crossing the line.
  */
 public class SoccerGoalBlock extends Block implements EntityBlock {
 
@@ -62,7 +66,30 @@ public class SoccerGoalBlock extends Block implements EntityBlock {
 
     @Override
     public RenderShape getRenderShape(BlockState state) {
-        return RenderShape.MODEL;
+        // The visible frame comes from goal post / net blocks, not from this sensor.
+        return RenderShape.INVISIBLE;
+    }
+
+    @Override
+    public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+        return Shapes.empty();
+    }
+
+    @Override
+    public VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos,
+                                        CollisionContext context) {
+        // Balls and players pass the mouth freely; the net blocks stop the ball.
+        return Shapes.empty();
+    }
+
+    @Override
+    public float getShadeBrightness(BlockState state, BlockGetter level, BlockPos pos) {
+        return 1.0F;
+    }
+
+    @Override
+    public boolean propagatesSkylightDown(BlockState state, BlockGetter level, BlockPos pos) {
+        return true;
     }
 
     @Nullable
@@ -79,7 +106,7 @@ public class SoccerGoalBlock extends Block implements EntityBlock {
             return null;
         }
         return createTickerHelper(blockEntityType, ModBlockEntities.GOAL.get(),
-                (tickLevel, pos, tickState, goal) -> goal.serverTick(tickLevel));
+                (tickLevel, tickPos, tickState, goal) -> goal.serverTick(tickLevel));
     }
 
     @SuppressWarnings("unchecked")

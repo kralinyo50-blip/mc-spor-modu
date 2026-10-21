@@ -5,6 +5,7 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.sportcraft.match.MatchManager;
+import com.sportcraft.match.MatchState;
 import com.sportcraft.match.Team;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -64,12 +65,16 @@ public class SportCraftCommand {
     }
 
     private static int startMatch(CommandSourceStack source, int seconds) {
-        MatchManager manager = MatchManager.get(source.getLevel().getServer().overworld());
+        ServerLevel overworld = source.getLevel().getServer().overworld();
+        MatchManager manager = MatchManager.get(overworld);
         if (!manager.isFieldBuilt()) {
             source.sendFailure(Component.translatable("command.sportcraft.no_field"));
             return 0;
         }
         manager.start(seconds);
+        if (manager.getState() == MatchState.RUNNING) {
+            manager.populateNpcs(overworld, source.getServer());
+        }
         manager.broadcast(source.getServer());
         source.sendSuccess(() -> Component.translatable("command.sportcraft.started"), true);
         return 1;
@@ -92,7 +97,9 @@ public class SportCraftCommand {
     }
 
     private static int resetMatch(CommandSourceStack source) {
-        MatchManager manager = MatchManager.get(source.getLevel().getServer().overworld());
+        ServerLevel overworld = source.getLevel().getServer().overworld();
+        MatchManager manager = MatchManager.get(overworld);
+        manager.clearNpcs(overworld);
         manager.reset();
         manager.broadcast(source.getServer());
         source.sendSuccess(() -> Component.translatable("command.sportcraft.reset"), true);

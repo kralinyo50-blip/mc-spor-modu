@@ -56,9 +56,9 @@ public class GoalBlockEntity extends BlockEntity {
         AABB blockBox = new AABB(worldPosition).inflate(0.05D);
         AABB expanded = blockBox.expandTowards(facing.getStepX() * 1.5D, 0.0D, facing.getStepZ() * 1.5D);
         if (facing.getAxis() == Direction.Axis.Z) {
-            return expanded.inflate(1.0D, 1.0D, 0.0D);
+            return expanded.inflate(2.0D, 1.0D, 0.0D);
         }
-        return expanded.inflate(0.0D, 1.0D, 1.0D);
+        return expanded.inflate(0.0D, 1.0D, 2.0D);
     }
 
     private void registerGoal(Level level, SoccerBallEntity ball, Team defendingTeam) {
@@ -71,8 +71,11 @@ public class GoalBlockEntity extends BlockEntity {
         level.playSound(null, worldPosition, ModSounds.GOAL_HORN.get(),
                 SoundSource.BLOCKS, 2.0F, counted ? 1.0F : 0.8F);
 
-        // Move the ball back to the world spawn and give the detectors breathing room.
-        BlockPos spawn = serverLevel.getSharedSpawnPos();
+        // Prefer the centre of the active field; fall back to the world spawn.
+        BlockPos spawn = MatchManager.get(serverLevel).getFieldCenter();
+        if (spawn == null) {
+            spawn = serverLevel.getSharedSpawnPos();
+        }
         ball.resetTo(spawn);
         detectionCooldown = 40;
         setChanged();

@@ -151,6 +151,10 @@ public class SoccerBallEntity extends Entity {
             if (entity.isSpectator() || !entity.isAlive()) {
                 continue;
             }
+            // Bots have their own kick logic in NpcPlayGoal; avoid double impulses.
+            if (entity instanceof SoccerNpcEntity) {
+                continue;
+            }
             AABB entityBox = entity.getBoundingBox();
             if (!entityBox.intersects(getBoundingBox().inflate(0.35D))) {
                 continue;
@@ -228,6 +232,19 @@ public class SoccerBallEntity extends Entity {
         }
         level().playSound(null, this, SoundEvents.ITEM_PICKUP, SoundSource.PLAYERS, 0.4F, 1.4F);
         discard();
+    }
+
+    /** Called by the NPC brain when a bot reaches the ball. */
+    public void kickFromMob(LivingEntity mob, Vec3 direction) {
+        if (kickCooldown > 0 || !isAlive() || direction.lengthSqr() < 1.0E-6D) {
+            return;
+        }
+        Vec3 dir = direction.normalize();
+        setDeltaMovement(dir.x * 1.05D, 0.24D + Math.max(0.0D, -dir.y) * 0.2D, dir.z * 1.05D);
+        visualYaw = mob.getYRot();
+        kickCooldown = 8;
+        hasImpulse = true;
+        level().playSound(null, this, ModSounds.KICK.get(), SoundSource.PLAYERS, 0.9F, 1.0F);
     }
 
     /** Called by the goal detector after a scored goal to move the ball out. */
