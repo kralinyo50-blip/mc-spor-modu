@@ -129,28 +129,25 @@ def item_soccer_ball():
 
 
 def entity_soccer_ball():
-    """Opaque, tileable per-face ball texture for the cube entity model."""
-    img = Image.new("RGB", (16, 16))
+    """64x32 opaque texture wrapped by the low-poly sphere ball model."""
+    img = Image.new("RGB", (64, 32))
     px = img.load()
-    for x in range(16):
-        for y in range(16):
+    for x in range(64):
+        for y in range(32):
             px[x, y] = noise((238, 238, 236), 4)
     black = (24, 24, 28)
-    # Centre pentagon-ish patch.
-    for x in range(6, 10):
-        for y in range(6, 10):
-            px[x, y] = black
-    px[6, 6] = (238, 238, 236)
-    px[9, 6] = (238, 238, 236)
-    # Corner patches so adjacent faces read as one patterned ball.
-    for cx, cy in ((1, 1), (14, 1), (1, 14), (14, 14)):
-        for dx in (-1, 0, 1):
-            for dy in (-1, 0, 1):
-                px[cx + dx, cy + dy] = black
-    # Edge midpoint patches.
-    for cx, cy in ((7, 1), (1, 7), (14, 7), (7, 14)):
-        px[cx, cy] = black
-        px[cx + 1, cy] = black
+
+    def patch(cx, cy, radius):
+        for x in range(cx - radius, cx + radius + 1):
+            for y in range(cy - radius, cy + radius + 1):
+                if 0 <= x < 64 and 0 <= y < 32 and abs(x - cx) + abs(y - cy) <= radius + 1:
+                    px[x, y] = black
+
+    # Scattered pentagon-ish patches read consistently from every sphere band.
+    for cx, cy, r in ((10, 8, 3), (32, 8, 3), (54, 8, 3),
+                      (21, 23, 3), (43, 23, 3), (2, 24, 2), (62, 24, 2),
+                      (32, 16, 2)):
+        patch(cx, cy, r)
     save(img, "entity/soccer_ball.png")
 
 
@@ -215,24 +212,48 @@ def item_basketball():
 
 
 def entity_basketball():
+    """64x32 orange texture with dark seams, wrapped by the sphere model."""
+    img = Image.new("RGB", (64, 32))
+    px = img.load()
+    for x in range(64):
+        for y in range(32):
+            px[x, y] = noise((204, 102, 34), 7)
+    seam = (58, 30, 14)
+    for y in range(32):
+        px[15, y] = seam
+        px[16, y] = seam
+        px[47, y] = seam
+        px[48, y] = seam
+    for x in range(64):
+        px[x, 15] = seam
+        px[x, 16] = seam
+    save(img, "entity/basketball_ball.png")
+
+
+def artificial_turf_dark():
     img = Image.new("RGB", (16, 16))
     px = img.load()
     for x in range(16):
+        stripe = 6 if (x // 4) % 2 == 0 else 0
         for y in range(16):
-            px[x, y] = noise((204, 102, 34), 7)
-    seam = (58, 30, 14)
-    for y in range(16):
-        px[7, y] = seam
-        px[8, y] = seam
-    for x in range(16):
-        px[x, 7] = seam
-        px[x, 8] = seam
-    # Corner seam patches keep neighbouring faces consistent.
-    for cx, cy in ((1, 1), (14, 14)):
-        for dx in (-1, 0, 1):
-            for dy in (-1, 0, 1):
-                px[cx + dx, cy + dy] = seam
-    save(img, "entity/basketball_ball.png")
+            base = (56 + stripe, 104 + stripe, 34 + stripe)
+            px[x, y] = noise(base, 7)
+    save(img, "block/artificial_turf_dark.png")
+
+
+def goal_net_texture():
+    """White grid with transparent holes; the block stays solid for collision."""
+    img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+    px = img.load()
+    line = (228, 230, 236, 235)
+    for i in range(16):
+        for j in range(16):
+            if i % 3 == 0 or j % 3 == 0:
+                px[i, j] = line
+    for i in range(0, 16, 3):
+        for j in range(0, 16, 3):
+            px[i, j] = (250, 250, 252, 255)
+    save(img, "block/goal_net.png")
 
 
 def card(color, name):
@@ -341,6 +362,8 @@ def main():
     card((208, 40, 40), "red_card")
     block_seats()
     scoreboard()
+    artificial_turf_dark()
+    goal_net_texture()
     whistle()
     logo()
     print("All textures generated.")

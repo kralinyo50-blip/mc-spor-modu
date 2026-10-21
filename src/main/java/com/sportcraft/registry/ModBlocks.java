@@ -3,6 +3,8 @@ package com.sportcraft.registry;
 import com.sportcraft.SportCraft;
 import com.sportcraft.block.ArtificialTurfBlock;
 import com.sportcraft.block.FieldLineBlock;
+import com.sportcraft.block.GoalNetBlock;
+import com.sportcraft.block.GoalPostBlock;
 import com.sportcraft.block.ScoreboardBlock;
 import com.sportcraft.block.SeatBlock;
 import com.sportcraft.block.SoccerGoalBlock;
@@ -21,6 +23,12 @@ public class ModBlocks {
             DeferredRegister.create(ForgeRegistries.BLOCKS, SportCraft.MOD_ID);
 
     public static final RegistryObject<Block> ARTIFICIAL_TURF = BLOCKS.register("artificial_turf",
+            () -> new ArtificialTurfBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.COLOR_GREEN)
+                    .strength(0.6F)
+                    .sound(SoundType.GRASS)));
+
+    public static final RegistryObject<Block> ARTIFICIAL_TURF_DARK = BLOCKS.register("artificial_turf_dark",
             () -> new ArtificialTurfBlock(BlockBehaviour.Properties.of()
                     .mapColor(MapColor.COLOR_GREEN)
                     .strength(0.6F)
@@ -46,17 +54,33 @@ public class ModBlocks {
                     .sound(SoundType.METAL)
                     .noOcclusion()));
 
+    public static final RegistryObject<Block> GOAL_POST = BLOCKS.register("goal_post",
+            () -> new GoalPostBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.METAL)
+                    .strength(2.5F)
+                    .sound(SoundType.METAL)
+                    .requiresCorrectToolForDrops()));
+
+    public static final RegistryObject<Block> GOAL_NET = BLOCKS.register("goal_net",
+            () -> new GoalNetBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.SNOW)
+                    .strength(0.4F)
+                    .sound(SoundType.WOOL)
+                    .noOcclusion()));
+
     public static final RegistryObject<Block> RED_SEAT = BLOCKS.register("red_seat",
             () -> new SeatBlock(BlockBehaviour.Properties.of()
                     .mapColor(MapColor.COLOR_RED)
                     .strength(0.8F)
-                    .sound(SoundType.WOOD)));
+                    .sound(SoundType.WOOD)
+                    .noOcclusion()));
 
     public static final RegistryObject<Block> BLUE_SEAT = BLOCKS.register("blue_seat",
             () -> new SeatBlock(BlockBehaviour.Properties.of()
                     .mapColor(MapColor.COLOR_BLUE)
                     .strength(0.8F)
-                    .sound(SoundType.WOOD)));
+                    .sound(SoundType.WOOD)
+                    .noOcclusion()));
 
     public static final RegistryObject<Block> SCOREBOARD = BLOCKS.register("scoreboard",
             () -> new ScoreboardBlock(BlockBehaviour.Properties.of()

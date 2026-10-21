@@ -34,12 +34,18 @@ public class ModItems {
 
     public static final RegistryObject<Item> ARTIFICIAL_TURF_ITEM =
             registerBlockItem("artificial_turf", ModBlocks.ARTIFICIAL_TURF);
+    public static final RegistryObject<Item> ARTIFICIAL_TURF_DARK_ITEM =
+            registerBlockItem("artificial_turf_dark", ModBlocks.ARTIFICIAL_TURF_DARK);
     public static final RegistryObject<Item> FIELD_LINE_ITEM =
             registerBlockItem("field_line", ModBlocks.FIELD_LINE);
     public static final RegistryObject<Item> RED_GOAL_ITEM =
             registerBlockItem("red_goal", ModBlocks.RED_GOAL);
     public static final RegistryObject<Item> BLUE_GOAL_ITEM =
             registerBlockItem("blue_goal", ModBlocks.BLUE_GOAL);
+    public static final RegistryObject<Item> GOAL_POST_ITEM =
+            registerBlockItem("goal_post", ModBlocks.GOAL_POST);
+    public static final RegistryObject<Item> GOAL_NET_ITEM =
+            registerBlockItem("goal_net", ModBlocks.GOAL_NET);
     public static final RegistryObject<Item> RED_SEAT_ITEM =
             registerBlockItem("red_seat", ModBlocks.RED_SEAT);
     public static final RegistryObject<Item> BLUE_SEAT_ITEM =

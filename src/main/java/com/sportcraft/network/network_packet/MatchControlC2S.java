@@ -46,13 +46,22 @@ public class MatchControlC2S {
             if (player == null || !player.hasPermissions(2)) {
                 return;
             }
-            MatchManager manager = MatchManager.get((ServerLevel) player.level());
+            ServerLevel level = (ServerLevel) player.level();
+            MatchManager manager = MatchManager.get(level);
             switch (action) {
-                case ACTION_START -> manager.start(durationSeconds > 0
-                        ? durationSeconds : manager.getConfiguredDuration());
+                case ACTION_START -> {
+                    manager.start(durationSeconds > 0
+                            ? durationSeconds : manager.getConfiguredDuration());
+                    if (manager.getState() == com.sportcraft.match.MatchState.RUNNING) {
+                        manager.populateNpcs(level, player.server);
+                    }
+                }
                 case ACTION_PAUSE -> manager.pause();
                 case ACTION_RESUME -> manager.resume();
-                case ACTION_RESET -> manager.reset();
+                case ACTION_RESET -> {
+                    manager.clearNpcs(level);
+                    manager.reset();
+                }
                 default -> {
                     return;
                 }

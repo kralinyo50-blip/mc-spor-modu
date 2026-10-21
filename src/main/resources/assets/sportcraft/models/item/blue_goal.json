@@ -1,3 +1,6 @@
 {
-  "parent": "sportcraft:block/blue_goal"
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "sportcraft:block/goal_post"
+  }
 }

@@ -24,11 +24,13 @@ public class ModCreativeTabs {
                         output.accept(ModItems.WHISTLE.get());
                         output.accept(ModItems.YELLOW_CARD.get());
                         output.accept(ModItems.RED_CARD.get());
-                        // Field construction.
+                        // Field surface and markings.
                         output.accept(ModBlocks.ARTIFICIAL_TURF.get());
+                        output.accept(ModBlocks.ARTIFICIAL_TURF_DARK.get());
                         output.accept(ModBlocks.FIELD_LINE.get());
-                        output.accept(ModBlocks.RED_GOAL.get());
-                        output.accept(ModBlocks.BLUE_GOAL.get());
+                        // Goal construction.
+                        output.accept(ModBlocks.GOAL_POST.get());
+                        output.accept(ModBlocks.GOAL_NET.get());
                         // Stands and scoreboard.
                         output.accept(ModBlocks.RED_SEAT.get());
                         output.accept(ModBlocks.BLUE_SEAT.get());

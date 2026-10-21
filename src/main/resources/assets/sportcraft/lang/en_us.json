@@ -2,11 +2,14 @@
   "itemGroup.sportcraft.sportcraft_tab": "MC Sports",
 
   "block.sportcraft.artificial_turf": "Artificial Turf",
+  "block.sportcraft.artificial_turf_dark": "Dark Artificial Turf",
   "block.sportcraft.field_line": "Field Line",
-  "block.sportcraft.red_goal": "Red Goal",
-  "block.sportcraft.blue_goal": "Blue Goal",
-  "block.sportcraft.red_seat": "Red Seat",
-  "block.sportcraft.blue_seat": "Blue Seat",
+  "block.sportcraft.red_goal": "Goal Sensor (Red)",
+  "block.sportcraft.blue_goal": "Goal Sensor (Blue)",
+  "block.sportcraft.goal_post": "Goal Post",
+  "block.sportcraft.goal_net": "Goal Net",
+  "block.sportcraft.red_seat": "Red Stadium Seat",
+  "block.sportcraft.blue_seat": "Blue Stadium Seat",
   "block.sportcraft.scoreboard": "Scoreboard",
 
   "item.sportcraft.soccer_ball": "Soccer Ball",
@@ -16,6 +19,8 @@
   "item.sportcraft.red_card": "Red Card",
 
   "entity.sportcraft.soccer_ball": "Sports Ball",
+  "entity.sportcraft.soccer_npc": "AI Footballer",
+  "entity.sportcraft.seat": "Seat",
 
   "key.categories.sportcraft": "SportCraft",
   "key.sportcraft.match_menu": "Open Match Menu",

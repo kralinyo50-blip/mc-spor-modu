@@ -13,8 +13,11 @@ import net.minecraft.client.model.geom.builders.PartDefinition;
 import net.minecraft.client.renderer.RenderType;
 
 /**
- * Single 8x8x8 pixel cube (half a block) textured with the soccer ball texture.
- * Rolling rotation is applied by the renderer.
+ * Low-poly sphere built from seven stacked pixel bands, replacing the old
+ * half-block cube so the ball reads as round like the reference mod.
+ *
+ * <p>Band sizes (diameter in pixels) from bottom to top: 6, 12, 14, 16, 14,
+ * 12, 6 — centred on the origin so the renderer only translates the centre.</p>
  */
 public class BallModel extends EntityModel<SoccerBallEntity> {
 
@@ -28,10 +31,24 @@ public class BallModel extends EntityModel<SoccerBallEntity> {
     public static LayerDefinition createBodyLayer() {
         MeshDefinition mesh = new MeshDefinition();
         PartDefinition rootPart = mesh.getRoot();
-        rootPart.addOrReplaceChild("ball",
-                CubeListBuilder.create().texOffs(0, 0).addBox(-4.0F, -4.0F, -4.0F, 8.0F, 8.0F, 8.0F),
-                PartPose.ZERO);
-        return LayerDefinition.create(mesh, 16, 16);
+        PartDefinition ballPart = rootPart.addOrReplaceChild("ball",
+                CubeListBuilder.create(), PartPose.ZERO);
+
+        // Each band: half-size, y start, height.
+        addBand(ballPart, 3, -8, 2);
+        addBand(ballPart, 6, -6, 2);
+        addBand(ballPart, 7, -4, 2);
+        addBand(ballPart, 8, -2, 4);
+        addBand(ballPart, 7, 2, 2);
+        addBand(ballPart, 6, 4, 2);
+        addBand(ballPart, 3, 6, 2);
+        return LayerDefinition.create(mesh, 64, 32);
+    }
+
+    private static void addBand(PartDefinition parent, int half, int y, int height) {
+        CubeListBuilder cubes = CubeListBuilder.create().texOffs(0, 0)
+                .addBox(-half, y, -half, half * 2, height, half * 2);
+        parent.addOrReplaceChild("band_" + y + "_" + half, cubes, PartPose.ZERO);
     }
 
     @Override
