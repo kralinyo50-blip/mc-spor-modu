@@ -91,13 +91,15 @@ public class SoccerNpcEntity extends PathfinderMob {
         return false;
     }
 
+    // Mob hiyerarşisinde bu iki NBT metodu public'tir; Entity tabanındaki
+    // protected imzayı zayıflatmamak için aynı erişim belirleyiciyi koruyoruz.
     @Override
-    protected void readAdditionalSaveData(CompoundTag tag) {
+    public void readAdditionalSaveData(CompoundTag tag) {
         // Transient entity; nothing to restore.
     }
 
     @Override
-    protected void addAdditionalSaveData(CompoundTag tag) {
+    public void addAdditionalSaveData(CompoundTag tag) {
         // Transient entity; nothing to store.
     }
 
