@@ -3,6 +3,7 @@ package com.sportcraft.network.network_packet;
 import com.sportcraft.match.MatchManager;
 import com.sportcraft.match.Team;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.network.NetworkEvent;
 
@@ -34,7 +35,7 @@ public class JoinTeamC2S {
             if (player == null) {
                 return;
             }
-            MatchManager manager = MatchManager.get(player.serverLevel());
+            MatchManager manager = MatchManager.get((ServerLevel) player.level());
             manager.setTeam(player.getUUID(), team);
             manager.broadcast(player.server);
         });

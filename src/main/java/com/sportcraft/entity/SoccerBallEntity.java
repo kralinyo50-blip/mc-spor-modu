@@ -72,12 +72,12 @@ public class SoccerBallEntity extends Entity {
         this.baseTick();
 
         if (this.level().isClientSide) {
-            // Smooth the tracker position updates, the same way ItemEntity does.
+            // Physics run on the server only. The entity tracker applies incoming
+            // position/motion packets directly; here we just keep the previous-position
+            // bookkeeping so partial-tick rendering and the roll animation stay smooth.
             this.xo = this.getX();
             this.yo = this.getY();
             this.zo = this.getZ();
-            this.lerpPositionAndRotationStep(this.lerpSteps, this.lerpX, this.lerpY, this.lerpZ,
-                    this.lerpYRot, this.lerpXRot);
             updateVisualRoll();
             return;
         }
@@ -95,12 +95,12 @@ public class SoccerBallEntity extends Entity {
         }
 
         Vec3 motion = getDeltaMovement();
-        if (!isOnGround()) {
+        if (!onGround()) {
             motion = motion.add(0.0D, GRAVITY, 0.0D);
         }
-        double drag = isOnGround() ? GROUND_FRICTION : AIR_DRAG;
+        double drag = onGround() ? GROUND_FRICTION : AIR_DRAG;
         motion = motion.multiply(drag, 1.0D, drag);
-        if (isOnGround() && Math.abs(motion.y) < 0.1D) {
+        if (onGround() && Math.abs(motion.y) < 0.1D) {
             motion = new Vec3(motion.x, 0.0D, motion.z);
         }
 
@@ -141,7 +141,7 @@ public class SoccerBallEntity extends Entity {
 
         // Settle the ball instead of jittering forever.
         Vec3 settled = getDeltaMovement();
-        if (isOnGround() && settled.horizontalDistanceSqr() < 0.0004D) {
+        if (onGround() && settled.horizontalDistanceSqr() < 0.0004D) {
             setDeltaMovement(0.0D, settled.y, 0.0D);
         }
 

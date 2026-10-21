@@ -29,6 +29,25 @@ ve oyun içi çalıştırma **yapılamadı**. Bunun yerine aşağıdaki statik d
    görünen 5 "hata"nın yalnızca ayrıştırıcının desteklemediği Java 17 yapıları
    (pattern `instanceof`, arrow `switch`) olduğu kanıtlandı, geçici dönüşümle
    tüm dosyalar temiz çıktı.
+9. **Gerçek 1.20.1 kaynak koduyla API denetimi (derleme hatalarının kök nedeni):**
+   İlk derleme denemesi `:compileJava` aşamasında düştü. Tüm vanilya çağrıları,
+   1.20.1'e ait decompile kaynaklar (Blackjack200/minecraft_client_1_20_1) ve
+   Forge'un kendi 1.20.1 dalı ile tek tek karşılaştırıldı. Bulunan ve düzeltilen
+   sürüm uyumsuzlukları (kod yanlışlıkla 1.20.2+/1.20.5+ imzaları kullanıyordu):
+   - `SavedData.Factory` 1.20.1'de yok; `computeIfAbsent(Function, Supplier, String)`
+     3-arg formuna ve tek parametreli `save/load(CompoundTag)` imzalarına dönüldü.
+   - `Entity.onGround()` (`isOnGround` 1.20.2+), `Entity.isShiftKeyDown()`
+     (`isSecondaryUseActive` 1.20.2+).
+   - `EntityModel#renderToBuffer` (`renderToStack` 1.20.2+); `LayerDefinition`,
+     `MeshDefinition`, `PartDefinition` 1.20.1'de `model.geom.builders` paketinde.
+   - `org.joml.Vector3f` (`com.mojang.math.Vector3f` 1.20.1'de mevcut değil).
+   - `CreativeModeTab.builder(Row.TOP, 0)` (argümansız builder 1.20.2+).
+   - `Entity.serverLevel()` 1.20.1'de yok; `(ServerLevel) level()` cast'ine dönüldü.
+   - 1.20.1'de olmayan `lerpPositionAndRotationStep` çağrısı kaldırıldı; istemci
+     tarafı ItemEntity desenine (yalnız xo/yo/zo takibi + görsel takla) indirildi.
+   Doğrulaması kaynak kodundan yapılmış Forge eklemeleri (sorunsuz): Forge
+   KeyMapping 5-arg ctor, `setShouldReceiveVelocityUpdates`, `setRenderLayer`,
+   `PacketDistributor`, SimpleChannel zinciri, overlay ve tuş olayları.
 
 ## Kendi makinenizde doğrulama
 

@@ -2,6 +2,7 @@ package com.sportcraft.network.network_packet;
 
 import com.sportcraft.match.MatchManager;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.network.NetworkEvent;
 
@@ -45,7 +46,7 @@ public class MatchControlC2S {
             if (player == null || !player.hasPermissions(2)) {
                 return;
             }
-            MatchManager manager = MatchManager.get(player.serverLevel());
+            MatchManager manager = MatchManager.get((ServerLevel) player.level());
             switch (action) {
                 case ACTION_START -> manager.start(durationSeconds > 0
                         ? durationSeconds : manager.getConfiguredDuration());
