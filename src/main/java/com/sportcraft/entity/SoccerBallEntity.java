@@ -48,7 +48,8 @@ public class SoccerBallEntity extends Entity {
     private static final EntityDataAccessor<Byte> DATA_BALL_TYPE =
             SynchedEntityData.defineId(SoccerBallEntity.class, EntityDataSerializers.BYTE);
 
-    private static final double BALL_RADIUS = 0.32D;
+    /** Shared collision/render radius (0.44 block diameter). */
+    public static final double BALL_RADIUS = 0.22D;
     private static final double RESTITUTION_MIN = 0.42D;
     private static final int KICK_COOLDOWN_TICKS = 6;
 
