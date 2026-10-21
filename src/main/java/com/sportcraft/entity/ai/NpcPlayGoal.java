@@ -135,8 +135,10 @@ public class NpcPlayGoal extends Goal {
         }
 
         // Supporting run: drift toward the ball only while it is on our half.
-        boolean ballOnOwnHalf = Integer.signum(ball.getZ() - center.getZ())
-                == Integer.signum(ownGoal.getZ() - center.getZ());
+        // Product of the two signed offsets is positive exactly when they
+        // point the same way (ball and own goal on the same side of centre).
+        boolean ballOnOwnHalf = (ball.getZ() - center.getZ())
+                * (ownGoal.getZ() - center.getZ()) > 0.0D;
         if (ballOnOwnHalf && npc.distanceToSqr(ball) > HOME_DRIFT_DISTANCE_SQR) {
             return home.add(ball.position().subtract(home).scale(0.25D));
         }
