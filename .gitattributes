@@ -1,6 +1,7 @@
-# Windows batch dosyalari her zaman CRLF ile saklanmali
-*.bat text eol=crlf
-*.cmd text eol=crlf
+# Windows batch dosyalari: CRLF blob icinde de korunmali
+# (GitHub ZIP indirmesinde dahi dogru satir sonu garanti olsun)
+*.bat -text
+*.cmd -text
 
 # Unix kabuk betikleri her zaman LF
 gradlew text eol=lf
