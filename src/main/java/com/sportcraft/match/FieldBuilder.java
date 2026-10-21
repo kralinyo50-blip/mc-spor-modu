@@ -14,22 +14,22 @@ import java.util.Set;
 /**
  * One-click stadium constructor used by the "Sahayı Kur" button.
  *
- * <p>Builds, around the clicked centre block: a striped artificial-turf pitch
- * with full white markings (border, halfway line, centre circle, penalty and
- * goal boxes), two multi-block post-and-net goals with invisible goal sensors,
- * an athletics track ring, advertising boards, corner flags, four floodlight
- * masts, two dugouts, terraced red/blue stands with chair seats and a
- * scoreboard block.</p>
+ * <p>The selected {@link BallType} decides the layout: football gets a striped
+ * grass pitch with multi-block post-and-net goals, an athletics track and
+ * terraced stands; basketball gets an orange hardwood-style court with
+ * three-point arcs, painted keys and elevated hoop structures with the same
+ * invisible goal sensors powering score detection.</p>
  *
- * <p>Only air, replaceable blocks and common natural ground blocks are
- * overwritten, so an existing structure next to the stadium is preserved.</p>
+ * <p>Only air, replaceable blocks and common natural/building ground blocks
+ * are overwritten, so an existing structure next to the stadium is preserved.</p>
  */
 public final class FieldBuilder {
 
     private static final Set<Block> GROUND_LIKE = Set.of(
             Blocks.GRASS_BLOCK, Blocks.DIRT, Blocks.COARSE_DIRT, Blocks.PODZOL,
             Blocks.ROOTED_DIRT, Blocks.SAND, Blocks.RED_SAND, Blocks.GRAVEL,
-            Blocks.MOSS_BLOCK, Blocks.MUD, Blocks.RED_CONCRETE,
+            Blocks.MOSS_BLOCK, Blocks.MUD, Blocks.RED_CONCRETE, Blocks.ORANGE_CONCRETE,
+            Blocks.GRAY_CONCRETE, Blocks.WHITE_CONCRETE,
             ModBlocks.ARTIFICIAL_TURF.get(), ModBlocks.ARTIFICIAL_TURF_DARK.get(),
             ModBlocks.FIELD_LINE.get());
 
@@ -46,10 +46,25 @@ public final class FieldBuilder {
     private static final int STAND_HALF_WIDTH = 8;
     private static final int FLOODLIGHT_HEIGHT = 12;
 
+    private static final int BB_KEY_HALF_WIDTH = 4;
+    private static final int BB_KEY_DEPTH = 5;
+    private static final int BB_CIRCLE_RADIUS = 3;
+    private static final int BB_HOOP_HEIGHT = 3;
+
     private FieldBuilder() {
     }
 
-    public static FieldBuildResult build(ServerLevel level, BlockPos center, FieldSize size) {
+    public static FieldBuildResult build(ServerLevel level, BlockPos center, FieldSize size, BallType sport) {
+        return sport == BallType.BASKETBALL
+                ? buildBasketballCourt(level, center, size)
+                : buildFootball(level, center, size);
+    }
+
+    // ------------------------------------------------------------------
+    // Football
+    // ------------------------------------------------------------------
+
+    private static FieldBuildResult buildFootball(ServerLevel level, BlockPos center, FieldSize size) {
         int halfW = size.getWidth() / 2;
         int halfL = size.getLength() / 2;
         int groundY = center.getY() - 1;
@@ -156,6 +171,151 @@ public final class FieldBuilder {
         count += placeIfReplaceable(level, mouth, sensor);
         return count;
     }
+
+    // ------------------------------------------------------------------
+    // Basketball
+    // ------------------------------------------------------------------
+
+    private static FieldBuildResult buildBasketballCourt(ServerLevel level, BlockPos center, FieldSize size) {
+        int halfW = size.getWidth() / 2;
+        int halfL = size.getLength() / 2;
+        int groundY = center.getY() - 1;
+        int playY = center.getY();
+        int placed = 0;
+
+        BlockState courtFloor = Blocks.ORANGE_CONCRETE.defaultBlockState();
+        BlockState surround = Blocks.GRAY_CONCRETE.defaultBlockState();
+        BlockState line = ModBlocks.FIELD_LINE.get().defaultBlockState();
+        BlockState post = ModBlocks.GOAL_POST.get().defaultBlockState();
+        BlockState net = ModBlocks.GOAL_NET.get().defaultBlockState();
+        BlockState board = Blocks.WHITE_CONCRETE.defaultBlockState();
+
+        int margin = 2;
+        for (int x = -halfW - margin; x <= halfW + margin; x++) {
+            for (int z = -halfL - margin; z <= halfL + margin; z++) {
+                BlockPos groundPos = new BlockPos(center.getX() + x, groundY, center.getZ() + z);
+                if (canReplaceGround(level.getBlockState(groundPos))) {
+                    boolean inside = Math.abs(x) <= halfW && Math.abs(z) <= halfL;
+                    BlockState ground = inside ? courtFloor : surround;
+                    level.setBlock(groundPos, ground, Block.UPDATE_ALL);
+                    placed++;
+                }
+                BlockPos playPos = new BlockPos(center.getX() + x, playY, center.getZ() + z);
+                if (level.getBlockState(playPos).canBeReplaced()
+                        && Math.abs(x) <= halfW && Math.abs(z) <= halfL) {
+                    level.setBlock(playPos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
+                    if (isBasketballMarking(x, z, halfW, halfL)) {
+                        level.setBlock(playPos, line, Block.UPDATE_ALL);
+                        placed++;
+                    }
+                }
+            }
+        }
+
+        BlockPos redSensor = buildHoop(level, center, halfL, -1, playY, post, net, board,
+                ModBlocks.RED_GOAL.get().defaultBlockState()
+                        .setValue(BlockStateProperties.HORIZONTAL_FACING, Direction.SOUTH));
+        BlockPos blueSensor = buildHoop(level, center, halfL, 1, playY, post, net, board,
+                ModBlocks.BLUE_GOAL.get().defaultBlockState()
+                        .setValue(BlockStateProperties.HORIZONTAL_FACING, Direction.NORTH));
+        placed += 2;
+
+        // Substitute benches flanking the court.
+        for (int baseZ = -6; baseZ <= 6; baseZ += 12) {
+            for (int dz = -2; dz <= 2; dz++) {
+                placed += placeIfReplaceable(level,
+                        new BlockPos(center.getX() + halfW + 2, playY, center.getZ() + baseZ + dz),
+                        ModBlocks.BLUE_SEAT.get().defaultBlockState());
+                placed += placeIfReplaceable(level,
+                        new BlockPos(center.getX() - halfW - 2, playY, center.getZ() + baseZ + dz),
+                        ModBlocks.RED_SEAT.get().defaultBlockState());
+            }
+        }
+
+        BlockPos scoreboardPos = new BlockPos(center.getX() + halfW + margin, playY + 1, center.getZ());
+        if (level.getBlockState(scoreboardPos).canBeReplaced()) {
+            level.setBlock(scoreboardPos, ModBlocks.SCOREBOARD.get().defaultBlockState(), Block.UPDATE_ALL);
+            placed++;
+        }
+
+        return new FieldBuildResult(center, size, redSensor, blueSensor, placed);
+    }
+
+    /**
+     * Elevated hoop: metal pole behind the baseline, white backboard, net rim
+     * block and the invisible score sensor one block inside the court.
+     *
+     * @param zDirection -1 north hoop, +1 south hoop.
+     */
+    private static BlockPos buildHoop(ServerLevel level, BlockPos center, int halfL, int zDirection,
+                                      int playY, BlockState post, BlockState net, BlockState board,
+                                      BlockState sensorState) {
+        int cx = center.getX();
+        int lineZ = center.getZ() + zDirection * halfL;
+        int poleZ = lineZ + zDirection;
+        int inward = -zDirection;
+
+        for (int y = playY; y <= playY + BB_HOOP_HEIGHT + 1; y++) {
+            placeIfReplaceable(level, new BlockPos(cx, y, poleZ), post);
+        }
+        // 3x2 backboard facing the court at rim height.
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dy = 0; dy < 2; dy++) {
+                placeIfReplaceable(level, new BlockPos(cx + dx, playY + BB_HOOP_HEIGHT - 1 + dy, poleZ), board);
+            }
+        }
+        // Rim net block on the baseline plane and the sensor just inside it.
+        placeIfReplaceable(level, new BlockPos(cx, playY + BB_HOOP_HEIGHT, lineZ), net);
+        BlockPos sensorPos = new BlockPos(cx, playY + BB_HOOP_HEIGHT, lineZ + inward);
+        placeIfReplaceable(level, sensorPos, sensorState);
+        return sensorPos;
+    }
+
+    private static boolean isBasketballMarking(int x, int z, int halfW, int halfL) {
+        if (Math.abs(x) == halfW || Math.abs(z) == halfL || z == 0) {
+            return true;
+        }
+        double centreDistance = Math.sqrt(x * x + z * z);
+        if (Math.abs(centreDistance - BB_CIRCLE_RADIUS) < 1.05D || (x == 0 && z == 0)) {
+            return true;
+        }
+        if (isBasketballKey(x, z, halfL, true) || isBasketballKey(x, z, halfL, false)) {
+            return true;
+        }
+        // Stepped three-point arcs around each baseline basket.
+        int arcRadius = halfW - 2;
+        for (int sign : new int[]{-1, 1}) {
+            double dx = x;
+            double dz = z - sign * halfL;
+            if (Math.abs(Math.sqrt(dx * dx + dz * dz) - arcRadius) < 1.05D
+                    && sign * z < sign * (halfL - 2)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isBasketballKey(int x, int z, int halfL, boolean north) {
+        int innerZ = north ? -halfL + BB_KEY_DEPTH : halfL - BB_KEY_DEPTH;
+        int goalLineZ = north ? -halfL : halfL;
+        boolean insideX = Math.abs(x) <= BB_KEY_HALF_WIDTH;
+        boolean withinDepth = north
+                ? z >= goalLineZ && z <= innerZ
+                : z <= goalLineZ && z >= innerZ;
+        if (!insideX || !withinDepth) {
+            return false;
+        }
+        if (Math.abs(x) == BB_KEY_HALF_WIDTH || z == innerZ) {
+            return true;
+        }
+        // Free-throw circle attached to the inner edge of the key.
+        double distance = Math.sqrt(x * x + (z - innerZ) * (z - innerZ));
+        return Math.abs(distance - 2) < 1.05D;
+    }
+
+    // ------------------------------------------------------------------
+    // Shared stadium decoration
+    // ------------------------------------------------------------------
 
     private static int buildAdvertisingBoards(ServerLevel level, BlockPos center, int halfW,
                                               int halfL, int playY) {

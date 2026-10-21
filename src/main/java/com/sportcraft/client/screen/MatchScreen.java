@@ -163,7 +163,14 @@ public class MatchScreen extends Screen {
 
     private void cycleTeamSize() {
         int direction = hasShiftDown() ? -1 : 1;
-        draft.setTeamSize(draft.getTeamSize() + direction);
+        int next = draft.getTeamSize() + direction;
+        // Wrap around instead of clamping so the button never gets stuck at 7v7.
+        if (next > MatchSettings.MAX_TEAM_SIZE) {
+            next = MatchSettings.MIN_TEAM_SIZE;
+        } else if (next < MatchSettings.MIN_TEAM_SIZE) {
+            next = MatchSettings.MAX_TEAM_SIZE;
+        }
+        draft.setTeamSize(next);
         sendSettings();
     }
 

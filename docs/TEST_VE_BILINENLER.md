@@ -1,5 +1,32 @@
 # Test Durumu ve Bilinen Sınırlamalar
 
+## v4: Fizik ve AI düzeltmeleri, rollü bot dizilişi, basketbol sahası
+
+Kullanıcı test geri bildirimine göre:
+
+1. **Topun yerin altına girmesi giderildi.** İki kök neden vardı: `resetTo`
+   topu zeminin içine gömecek koordinatta doğuruyordu (artık blok üstüne
+   hizalanıyor) ve çarpışma filtreleri top kısmen gömülünce zemin bloğunu
+   eliyordu. Filtreler gömülme-güvenli hale getirildi (şekil top kutusunu
+   kesiyorsa değerlendiriliyor) ve son çare olarak yukarı itme kurtarması
+   eklendi (`noCollision` döngüsü).
+2. **Botlar artık pozisyonlu oynuyor.** Tüm takımın topa yığılması yerine:
+   kaleci kalede, her takımın topa en yakın oyuncusu pres yapar, diğerleri
+   `FormationLayout` ile diziliş slotlarında durur ve top kendi yarı
+   alanlarındayken hafif kayar. Round-robin satır ataması sayesinde 7v7 gibi
+   büyük takımlar bile dizilişi bozmadan yayılır. İki takımın isim havuzları
+   ayrıldı (mükerrer isim yok), botların sıra numarası senkronize veri.
+3. **Takım boyutu düğmesi kilitlenmiyor.** 7v7'de ileri tıklama 1v1'e
+   sarıyor; Shift+tık ile geri de sarıyor (uçtan uca döngü).
+4. **Basketbol için ayrı saha.** Spor seçimi Basketbol iken «Sahayı Kur»
+   turuncu zeminli, üç sayı çemberli, boyalı alanlı ve serbest atış
+   çemberli basketbol sahası kurar; iki uçta yükseltilmiş çember (direk +
+   panya + file + görünmez sensör) vardır. Gol/çember pozisyonları spora
+   göre yükseltilir, bot şut yönü çemberi hedefler.
+5. **Taraf hizalaması.** Tüm botlar kendi yarı alanlarındaki diziliş
+   pozisyonlarından başlar; kırmızı kuzey kalesini, mavi güney kalesini
+   savunur ve rakip kaleye hücum eder.
+
 ## v3: Stadyum, çok bloklu kaleler, oturulur koltuklar ve AI futbolcular
 
 Kullanıcının yeni ekran görüntüleri (stadyum genel görünümü, fileli kale,

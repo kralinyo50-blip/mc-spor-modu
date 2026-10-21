@@ -1,5 +1,6 @@
 package com.sportcraft.network.network_packet;
 
+import com.sportcraft.match.BallType;
 import com.sportcraft.match.FieldBuilder;
 import com.sportcraft.match.FieldSize;
 import com.sportcraft.match.MatchManager;
@@ -43,8 +44,9 @@ public class BuildFieldC2S {
             }
             ServerLevel level = (ServerLevel) player.level();
             BlockPos center = player.blockPosition();
-            FieldBuilder.FieldBuildResult result = FieldBuilder.build(level, center, size);
             MatchManager manager = MatchManager.get(level);
+            BallType sport = manager.getSettings().getSport();
+            FieldBuilder.FieldBuildResult result = FieldBuilder.build(level, center, size, sport);
             manager.onFieldBuilt(center, size);
             manager.broadcast(player.server);
             player.sendSystemMessage(Component.translatable(
