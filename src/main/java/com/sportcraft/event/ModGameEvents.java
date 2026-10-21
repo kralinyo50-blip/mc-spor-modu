@@ -52,7 +52,7 @@ public class ModGameEvents {
         if (player.level().isClientSide) {
             return;
         }
-        if (player.isSecondaryUseActive()) {
+        if (player.isShiftKeyDown()) {
             ball.pickUp(player);
         } else {
             ball.softTouch(player);
@@ -74,7 +74,7 @@ public class ModGameEvents {
     @SubscribeEvent
     public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
-            MatchManager.get(player.serverLevel()).syncToPlayer(player);
+            MatchManager.get((ServerLevel) player.level()).syncToPlayer(player);
         }
     }
 

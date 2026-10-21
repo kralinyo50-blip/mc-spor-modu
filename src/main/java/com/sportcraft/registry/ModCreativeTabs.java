@@ -14,7 +14,7 @@ public class ModCreativeTabs {
             DeferredRegister.create(Registries.CREATIVE_MODE_TAB, SportCraft.MOD_ID);
 
     public static final RegistryObject<CreativeModeTab> SPORTCRAFT_TAB = TABS.register("sportcraft_tab",
-            () -> CreativeModeTab.builder()
+            () -> CreativeModeTab.builder(CreativeModeTab.Row.TOP, 0)
                     .title(Component.translatable("itemGroup.sportcraft.sportcraft_tab"))
                     .icon(() -> new ItemStack(ModItems.SOCCER_BALL.get()))
                     .displayItems((parameters, output) -> {

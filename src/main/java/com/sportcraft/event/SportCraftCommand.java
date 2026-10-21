@@ -9,6 +9,7 @@ import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.IntegerArgumentType;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.util.Locale;
@@ -53,7 +54,7 @@ public class SportCraftCommand {
             return 0;
         }
         ServerPlayer player = source.getPlayerOrException();
-        MatchManager manager = MatchManager.get(player.serverLevel());
+        MatchManager manager = MatchManager.get((ServerLevel) player.level());
         manager.setTeam(player.getUUID(), team);
         manager.broadcast(player.server);
         source.sendSuccess(() -> Component.translatable("command.sportcraft.joined",

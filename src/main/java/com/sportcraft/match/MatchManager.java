@@ -2,7 +2,6 @@ package com.sportcraft.match;
 
 import com.sportcraft.network.ModNetwork;
 import com.sportcraft.network.network_packet.MatchStateS2C;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -39,8 +38,10 @@ public class MatchManager extends SavedData {
     private int tickCounter;
 
     public static MatchManager get(ServerLevel level) {
+        // 1.20.1 signature: computeIfAbsent(loader Function, constructor Supplier, name).
+        // The SavedData.Factory record was only introduced in 1.20.5.
         return level.getServer().overworld().getDataStorage()
-                .computeIfAbsent(new SavedData.Factory<>(MatchManager::new, MatchManager::load), DATA_NAME);
+                .computeIfAbsent(MatchManager::load, MatchManager::new, DATA_NAME);
     }
 
     /** Called once per server tick from the Forge event handler. */
@@ -132,7 +133,7 @@ public class MatchManager extends SavedData {
     }
 
     @Override
-    public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
+    public CompoundTag save(CompoundTag tag) {
         tag.putString("State", state.name());
         tag.putInt("RedScore", redScore);
         tag.putInt("BlueScore", blueScore);
@@ -149,7 +150,7 @@ public class MatchManager extends SavedData {
         return tag;
     }
 
-    private static MatchManager load(CompoundTag tag, HolderLookup.Provider registries) {
+    private static MatchManager load(CompoundTag tag) {
         MatchManager manager = new MatchManager();
         manager.state = parseEnum(tag.getString("State"), MatchState.class, MatchState.IDLE);
         manager.redScore = tag.getInt("RedScore");

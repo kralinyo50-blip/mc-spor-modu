@@ -2,7 +2,7 @@ package com.sportcraft.client.renderer;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.math.Vector3f;
+import org.joml.Vector3f;
 import com.sportcraft.SportCraft;
 import com.sportcraft.client.model.BallModel;
 import com.sportcraft.entity.SoccerBallEntity;
@@ -45,7 +45,7 @@ public class SoccerBallRenderer extends EntityRenderer<SoccerBallEntity> {
         poseStack.mulPose(new Vector3f(axisX, 0.0F, axisZ).rotationDegrees(roll));
 
         VertexConsumer consumer = bufferSource.getBuffer(RenderType.entityCutoutNoCull(TEXTURE));
-        model.renderToStack(poseStack, consumer, packedLight, OverlayTexture.NO_OVERLAY,
+        model.renderToBuffer(poseStack, consumer, packedLight, OverlayTexture.NO_OVERLAY,
                 1.0F, 1.0F, 1.0F, 1.0F);
         poseStack.popPose();
 
