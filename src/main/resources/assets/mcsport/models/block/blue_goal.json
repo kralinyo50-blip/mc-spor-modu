@@ -1,0 +1,22 @@
+{
+  "parent": "block/block",
+  "textures": {
+    "post": "mcsport:block/goal_post",
+    "net": "mcsport:block/blue_goal_net",
+    "particle": "mcsport:block/goal_post"
+  },
+  "elements": [
+    {
+      "from": [0, 0, 0],
+      "to": [16, 16, 16],
+      "faces": {
+        "north": {"texture": "#net"},
+        "south": {"texture": "#net"},
+        "east": {"texture": "#net"},
+        "west": {"texture": "#net"},
+        "up": {"texture": "#post"},
+        "down": {"texture": "#post"}
+      }
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "mcsport:block/artificial_turf_dark",
+    "particle": "mcsport:block/artificial_turf_dark"
+  }
+}

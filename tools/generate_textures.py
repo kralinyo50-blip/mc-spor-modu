@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SportCraft texture generator.
+mcsport texture generator.
 
 Generates every PNG asset used by the mod with deterministic pixel art so the
 whole resource pack shares one consistent vanilla-Minecraft-style art direction.
@@ -12,7 +12,7 @@ import random
 from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ASSETS = os.path.join(ROOT, "src", "main", "resources", "assets", "sportcraft", "textures")
+ASSETS = os.path.join(ROOT, "src", "main", "resources", "assets", "mcsport", "textures")
 DOCS = os.path.join(ROOT, "docs")
 
 RNG = random.Random(4201)
@@ -344,8 +344,8 @@ def logo():
     px[7, 14] = (238, 238, 236)
     px[8, 14] = (238, 238, 236)
     os.makedirs(DOCS, exist_ok=True)
-    small.resize((128, 128), Image.NEAREST).save(os.path.join(DOCS, "sportcraft_logo.png"))
-    print("wrote docs/sportcraft_logo.png (128x128)")
+    small.resize((128, 128), Image.NEAREST).save(os.path.join(DOCS, "mcsport_logo.png"))
+    print("wrote docs/mcsport_logo.png (128x128)")
 
 
 def main():

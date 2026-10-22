@@ -1070,7 +1070,7 @@ def ensure_shell(fqn, kind="class"):
     # Fold dotted references to an already-existing class into nested form so
     # Outer.Inner never creates a colliding Outer/Inner.java package member.
     fqn = split_nested(fqn)
-    if fqn.startswith("com.sportcraft") or fqn.rpartition(".")[2] in (
+    if fqn.startswith("com.mcsport") or fqn.rpartition(".")[2] in (
             "Object", "String", "Integer", "Boolean", "Double", "Long", "Float", "Byte", "Short"):
         return None
     if "$" in fqn:

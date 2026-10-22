@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate SportCraft soccer ball textures with the standard library only.
+"""Generate mcsport soccer ball textures with the standard library only.
 
 Outputs:
   - textures/entity/soccer_ball.png  128x64 equirectangular map wrapped by the
@@ -16,9 +16,9 @@ import zlib
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ENTITY_OUT = os.path.join(
-    ROOT, "src/main/resources/assets/sportcraft/textures/entity/soccer_ball.png")
+    ROOT, "src/main/resources/assets/mcsport/textures/entity/soccer_ball.png")
 ITEM_OUT = os.path.join(
-    ROOT, "src/main/resources/assets/sportcraft/textures/item/soccer_ball.png")
+    ROOT, "src/main/resources/assets/mcsport/textures/item/soccer_ball.png")
 
 WHITE = (244, 244, 242, 255)
 BLACK = (17, 17, 19, 255)

@@ -23,7 +23,7 @@ def main():
                 line = line.strip()
                 if line.startswith("import "):
                     imp = line[len("import "):].rstrip(";")
-                    if imp and not imp.startswith("com.sportcraft") and not imp.endswith(".*"):
+                    if imp and not imp.startswith("com.mcsport") and not imp.endswith(".*"):
                         fqns.add(imp)
     try:
         from fix_stubs import SUPERCLASS

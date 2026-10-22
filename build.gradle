@@ -28,28 +28,28 @@ minecraft {
             property 'forge.logging.markers', 'REGISTRIES'
             property 'forge.logging.console.level', 'debug'
             mods {
-                sportcraft {
+                mcsport {
                     source sourceSets.main
                 }
             }
         }
 
         client {
-            property 'forge.enabledGameTestNamespaces', 'sportcraft'
+            property 'forge.enabledGameTestNamespaces', 'mcsport'
         }
 
         server {
-            property 'forge.enabledGameTestNamespaces', 'sportcraft'
+            property 'forge.enabledGameTestNamespaces', 'mcsport'
             args '--nogui'
         }
 
         gameTestServer {
-            property 'forge.enabledGameTestNamespaces', 'sportcraft'
+            property 'forge.enabledGameTestNamespaces', 'mcsport'
         }
 
         data {
             workingDirectory project.file('run-data')
-            args '--mod', 'sportcraft', '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
+            args '--mod', 'mcsport', '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
         }
     }
 }

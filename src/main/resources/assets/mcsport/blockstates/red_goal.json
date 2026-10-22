@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": {"model": "mcsport:block/goal_sensor"},
+    "facing=east": {"model": "mcsport:block/goal_sensor"},
+    "facing=south": {"model": "mcsport:block/goal_sensor"},
+    "facing=west": {"model": "mcsport:block/goal_sensor"}
+  }
+}

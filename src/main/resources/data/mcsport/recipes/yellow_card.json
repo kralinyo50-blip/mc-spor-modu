@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": ["P", "D"],
+  "key": {
+    "P": {"item": "minecraft:paper"},
+    "D": {"item": "minecraft:yellow_dye"}
+  },
+  "result": {"item": "mcsport:yellow_card", "count": 1}
+}
