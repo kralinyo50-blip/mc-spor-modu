@@ -100,6 +100,7 @@
   "gui.sportcraft.your_team": "Takımın: %s",
   "gui.sportcraft.keeper_tag": "Kaleci",
   "gui.sportcraft.shift_hint": "Shift + tık: ayarı geri al",
+  "gui.sportcraft.locked_hint": "Maç sürerken kurulum ayarları kilitli — önce duraklat ya da sıfırla",
 
   "hud.sportcraft.charge": "Atış Gücü",
 

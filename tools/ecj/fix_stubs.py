@@ -390,6 +390,10 @@ CURATED_METHODS = {
         "static net.minecraft.network.chat.MutableComponent literal(java.lang.String a0)",
         "net.minecraft.network.chat.MutableComponent append(java.lang.String a0)",
         "net.minecraft.network.chat.MutableComponent append(net.minecraft.network.chat.Component a0)"],
+    "MutableComponent": [
+        "net.minecraft.network.chat.MutableComponent withStyle(java.lang.Object a0)",
+        "net.minecraft.network.chat.MutableComponent withStyle(java.lang.Object a0, java.lang.Object a1)"],
+    "Vec3": ["float dot(net.minecraft.world.phys.Vec3 a0)"],
     "CommandSourceStack": ["void sendSuccess(java.util.function.Supplier a0, boolean a1)"],
     "FMLCommonSetupEvent": ["void enqueueWork(java.lang.Runnable a0)"],
     "FMLClientSetupEvent": ["void enqueueWork(java.lang.Runnable a0)"],

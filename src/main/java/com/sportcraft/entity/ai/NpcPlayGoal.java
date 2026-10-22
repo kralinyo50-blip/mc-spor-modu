@@ -50,19 +50,28 @@ public class NpcPlayGoal extends Goal {
 
     private static final double BALL_SEARCH_RADIUS = 64.0D;
     private static final double KEEPER_RUSH_DISTANCE_SQR = 36.0D;
-    private static final double KICK_DISTANCE_SQR = 2.8D;
+    // Tighter control range: the presser only touches the ball from ~1.5
+    // blocks so dribble taps stay small instead of ping-ponging away.
+    private static final double KICK_DISTANCE_SQR = 2.25D;
     private static final double HOME_DRIFT_DISTANCE_SQR = 25.0D;
     private static final int REPATH_INTERVAL = 12;
-    private static final int KICK_LOCK_TICKS = 14;
+    private static final int KICK_LOCK_TICKS = 12;
 
     private static final double TACKLE_TRIGGER_DIST_SQR = 7.0D;
     private static final double TACKLE_BALL_REACH_SQR = 2.25D;
-    private static final double PRESSURE_RADIUS = 4.0D;
     private static final int TACKLE_COOLDOWN_TICKS = 90;
     private static final int DRIBBLE_BOUNCE_INTERVAL = 10;
     private static final int CROSSOVER_INTERVAL = 55;
     private static final double BASKETBALL_SHOT_DIST_SQR = 64.0D;
     private static final double BASKETBALL_CONTROL_DIST_SQR = 4.0D;
+
+    // Football presser tuning. After this many dribble taps without a shot or
+    // pass the bot looks for a release pass so it never dribbles in circles.
+    private static final int DRIBBLE_STUCK_TAPS = 16;
+    private static final int FEINT_COOLDOWN_TICKS = 45;
+    private static final double SHOT_LANE_WIDTH = 1.1D;
+    private static final double PASS_LANE_WIDTH = 1.4D;
+    private static final double GOAL_MOUTH_OFFSET = 1.8D;
 
     // Goalkeeping
     private static final double KEEPER_SAVE_RANGE_SQR = 49.0D;
@@ -86,6 +95,12 @@ public class NpcPlayGoal extends Goal {
     private int cachedRank = -1;
     private boolean wasFreeKick;
     private boolean freeKickFired;
+    // Consecutive soft dribble taps; forces a release pass when it runs long.
+    private int dribbleHoldTicks;
+    private int feintCooldown;
+    // Last navigation target, used to skip wasteful path recalculations that
+    // made the bots stutter/stop-and-go while following a moving target.
+    private Vec3 lastPathTarget;
 
     public NpcPlayGoal(SoccerNpcEntity npc) {
         this.npc = npc;
@@ -152,9 +167,12 @@ public class NpcPlayGoal extends Goal {
             return;
         }
 
+        DifficultyProfile profile = profile(manager);
         if (--roleCooldown <= 0 || ball == null) {
-            roleCooldown = 10;
-            cachedChaser = isChaser(serverLevel, manager);
+            roleCooldown = profile.roleRefreshTicks();
+            // Shared, hysteresis-stable assignment from the manager: exactly
+            // one outfield bot per team presses the ball.
+            cachedChaser = manager.getChaser(serverLevel, npc.getSportTeam()) == npc;
             cachedRank = computeRank(serverLevel);
         }
 
@@ -188,6 +206,27 @@ public class NpcPlayGoal extends Goal {
         if (saveCooldown > 0) {
             saveCooldown--;
         }
+        if (feintCooldown > 0) {
+            feintCooldown--;
+        }
+    }
+
+    /**
+     * Difficulty-reactive behaviour tuning. EASY bots press slowly and shoot
+     * only from close range; HARD bots press faster, from further out and
+     * feint past defenders more often.
+     */
+    private DifficultyProfile profile(MatchManager manager) {
+        return switch (manager.getSettings().getDifficulty()) {
+            case EASY -> new DifficultyProfile(20, 1.18D, 81.0D, 4.5D, 0.30F);
+            case HARD -> new DifficultyProfile(10, 1.34D, 169.0D, 6.0D, 0.75F);
+            default -> new DifficultyProfile(15, 1.28D, 144.0D, 5.0D, 0.55F);
+        };
+    }
+
+    private record DifficultyProfile(int roleRefreshTicks, double chaseSpeed,
+                                     double shotRangeSqr, double pressureRadius,
+                                     float feintChance) {
     }
 
     // ------------------------------------------------------------------
@@ -201,39 +240,194 @@ public class NpcPlayGoal extends Goal {
             return;
         }
 
+        DifficultyProfile profile = profile(manager);
+
+        // The designated presser hunts the ball and takes every on-ball
+        // decision; everyone else keeps formation shape as passing options.
+        if (cachedChaser && ball != null && !ball.isCarried()) {
+            tickChaser(level, manager, attackGoal, profile);
+            return;
+        }
+
         boolean possession = ownTeamInPossession(level, manager);
         Vec3 target = decideTarget(manager, settings, center, ownGoal, attackGoal, possession);
-        double speed = cachedChaser ? 1.28D : (cachedRank == 1 ? 1.16D : 1.05D);
+        double speed = cachedRank == 1 ? 1.16D : 1.05D;
         moveToward(target, speed);
+        maybeTackle(level, manager);
+    }
 
-        if (ball == null || ball.isCarried() || kickCooldown > 0
-                || npc.distanceToSqr(ball) >= KICK_DISTANCE_SQR) {
+    /** Presser behaviour: intercept the rolling ball, then shoot, pass or dribble. */
+    private void tickChaser(ServerLevel level, MatchManager manager, BlockPos attackGoal,
+                            DifficultyProfile profile) {
+        if (ball == null) {
+            return;
+        }
+        // Out of control range (or cooling down from a touch): run onto the
+        // ball, leading its roll so bots intercept instead of chasing tails.
+        if (kickCooldown > 0 || npc.distanceToSqr(ball) >= KICK_DISTANCE_SQR) {
+            moveToward(chasePoint(ball), profile.chaseSpeed());
+            maybeTackle(level, manager);
+            if (npc.distanceToSqr(ball) > 16.0D) {
+                dribbleHoldTicks = Math.max(0, dribbleHoldTicks - 1);
+            }
+            return;
+        }
+        decideWithBall(level, manager, attackGoal, profile);
+    }
+
+    /** Ball is at the presser's feet: one of shot, pass, clearance or dribble. */
+    private void decideWithBall(ServerLevel level, MatchManager manager, BlockPos attackGoal,
+                                DifficultyProfile profile) {
+        LivingEntity pressure = nearestOpponentWithin(level, manager,
+                ball.position(), profile.pressureRadius());
+        double goalDistanceSqr = horizontalDistanceSqr(ball.position(), attackGoal);
+        boolean goalLane = laneIsClear(level, manager, ball.position(), attackGoal, SHOT_LANE_WIDTH);
+
+        // 1) Finish: in range, narrow open lane to the goal mouth. Aim for the
+        // corner away from the keeper instead of blasting straight at them.
+        if (goalDistanceSqr < profile.shotRangeSqr() && goalLane) {
+            Vec3 aim = cornerAim(level, manager, attackGoal);
+            ball.kickFromMob(npc, aim.subtract(ball.position()), 1.42D, 0.26D);
+            kickCooldown = KICK_LOCK_TICKS;
+            dribbleHoldTicks = 0;
+            npc.startKickWindup();
             maybeTackle(level, manager);
             return;
         }
 
-        double goalDistanceSqr = horizontalDistanceSqr(ball.position(), attackGoal);
-        LivingEntity pressure = nearestOpponentWithin(level, manager, ball.position(), PRESSURE_RADIUS);
-        SoccerNpcEntity passTarget = pickPassTarget(level, manager, attackGoal);
-
-        if (goalDistanceSqr < 100.0D && laneIsClear(level, manager, ball.position(), attackGoal, 8.0D)) {
-            // In range with a clear lane: finish on goal.
-            ball.kickFromMob(npc, Vec3.atBottomCenterOf(attackGoal).subtract(ball.position()),
-                    1.28D, 0.26D);
-        } else if (passTarget != null && (pressure != null || goalDistanceSqr > 225.0D)) {
-            // Under pressure, or too far out to shoot: use the passing network.
-            Vec3 passDirection = passTarget.position().subtract(ball.position());
-            ball.kickFromMob(npc, passDirection, 0.78D, 0.18D);
-        } else if (pressure != null) {
-            // Closed down with no pass: emergency clearance upfield.
-            ball.kickFromMob(npc, Vec3.atBottomCenterOf(attackGoal).subtract(ball.position()),
-                    1.32D, 0.32D);
-        } else {
-            // Space to carry: dribble forward with a soft touch.
-            ball.kickFromMob(npc, Vec3.atBottomCenterOf(attackGoal).subtract(ball.position()));
+        // 2) Passing network: release under pressure, after carrying too long,
+        // or when a teammate is clearly better placed than the current lane.
+        SoccerNpcEntity passTarget = pickPassTarget(level, manager, attackGoal, pressure != null);
+        if (passTarget != null && (pressure != null || dribbleHoldTicks >= DRIBBLE_STUCK_TAPS)) {
+            Vec3 passDirection = passTarget.position().add(0.0D, 1.0D, 0.0D)
+                    .subtract(ball.position());
+            double distance = Math.sqrt(npc.distanceToSqr(passTarget));
+            double passSpeed = Math.min(1.25D, 0.85D + distance * 0.025D);
+            ball.kickFromMob(npc, passDirection, passSpeed, 0.16D);
+            kickCooldown = KICK_LOCK_TICKS;
+            dribbleHoldTicks = 0;
+            maybeTackle(level, manager);
+            return;
         }
+
+        // 3) Closed down with no outlet: emergency clearance upfield.
+        if (pressure != null) {
+            ball.kickFromMob(npc, Vec3.atBottomCenterOf(attackGoal).subtract(ball.position()),
+                    1.3D, 0.32D);
+            kickCooldown = KICK_LOCK_TICKS;
+            dribbleHoldTicks = 0;
+            maybeTackle(level, manager);
+            return;
+        }
+
+        // 4) Space ahead: carry with a soft, angled touch that bends around
+        // the nearest defender (the dribble/çalım), plus an occasional feint.
+        Vec3 dribbleDir = dribbleDirection(level, manager, attackGoal, pressure);
+        ball.kickFromMob(npc, dribbleDir, 0.82D, 0.18D);
         kickCooldown = KICK_LOCK_TICKS;
+        dribbleHoldTicks++;
+        feint(level, dribbleDir, profile);
+        // Run straight onto where the touch went so possession is kept.
+        moveToward(ball.position().add(dribbleDir.scale(1.6D)), profile.chaseSpeed());
         maybeTackle(level, manager);
+    }
+
+    /** Predicted meeting point: ball position plus a short lead along its roll. */
+    private Vec3 chasePoint(SoccerBallEntity target) {
+        Vec3 velocity = target.getDeltaMovement();
+        Vec3 flat = new Vec3(velocity.x, 0.0D, velocity.z);
+        double speed = flat.length();
+        if (speed < 0.08D) {
+            return target.position();
+        }
+        double lead = Math.min(3.0D, speed * 4.0D);
+        return target.position().add(flat.normalize().scale(lead));
+    }
+
+    /** Goal-mouth point on the side farther from the defending keeper. */
+    private Vec3 cornerAim(ServerLevel level, MatchManager manager, BlockPos attackGoal) {
+        Vec3 mouth = Vec3.atBottomCenterOf(attackGoal);
+        SoccerNpcEntity keeper = findKeeper(level, npc.getSportTeam().opponent());
+        double side;
+        if (keeper != null) {
+            side = keeper.getX() >= mouth.x ? -GOAL_MOUTH_OFFSET : GOAL_MOUTH_OFFSET;
+        } else {
+            side = npc.getX() >= mouth.x ? GOAL_MOUTH_OFFSET : -GOAL_MOUTH_OFFSET;
+        }
+        return new Vec3(mouth.x + side, mouth.y, mouth.z);
+    }
+
+    private SoccerNpcEntity findKeeper(ServerLevel level, Team team) {
+        if (managerCenter(level) == null) {
+            return null;
+        }
+        AABB area = new AABB(managerCenter(level)).inflate(BALL_SEARCH_RADIUS);
+        for (SoccerNpcEntity candidate : level.getEntitiesOfClass(SoccerNpcEntity.class, area)) {
+            if (candidate.isAlive() && !candidate.isReferee()
+                    && candidate.getSportTeam() == team && candidate.isKeeper()) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    private BlockPos managerCenter(ServerLevel level) {
+        return MatchManager.get(level).getFieldCenter();
+    }
+
+    /**
+     * Forward dribble direction bent ~40 degrees away from a defender that
+     * blocks the straight lane, so the bot visibly dribbles around opponents
+     * instead of tapping the ball into their legs.
+     */
+    private Vec3 dribbleDirection(ServerLevel level, MatchManager manager, BlockPos attackGoal,
+                                  LivingEntity pressure) {
+        Vec3 goal = Vec3.atBottomCenterOf(attackGoal);
+        Vec3 dir = new Vec3(goal.x - ball.getX(), 0.0D, goal.z - ball.getZ());
+        if (dir.lengthSqr() < 1.0E-6D) {
+            dir = new Vec3(0.0D, 0.0D, 1.0D);
+        }
+        dir = dir.normalize();
+        if (pressure == null) {
+            return dir;
+        }
+        Vec3 toRival = new Vec3(pressure.getX() - ball.getX(), 0.0D,
+                pressure.getZ() - ball.getZ());
+        if (toRival.lengthSqr() < 1.0E-6D) {
+            return dir;
+        }
+        Vec3 rivalDir = toRival.normalize();
+        // Only bend when the defender actually stands in the forward lane.
+        if (dir.dot(rivalDir) <= 0.25D) {
+            return dir;
+        }
+        Vec3 away = rivalDir.scale(-1.0D);
+        double angle = 0.7D;
+        double cos = Math.cos(angle);
+        double sin = Math.sin(angle);
+        double sign = (dir.x * away.z - dir.z * away.x) >= 0.0D ? 1.0D : -1.0D;
+        Vec3 bent = new Vec3(cos * dir.x - sin * sign * dir.z, 0.0D,
+                sin * sign * dir.x + cos * dir.z);
+        return bent.add(away.scale(0.25D)).normalize();
+    }
+
+    /** Short lateral sidestep with a dust puff while dribbling past a rival. */
+    private void feint(ServerLevel level, Vec3 dribbleDir, DifficultyProfile profile) {
+        if (feintCooldown > 0 || level.random.nextFloat() >= profile.feintChance()) {
+            return;
+        }
+        LivingEntity rival = nearestOpponentWithin(level, MatchManager.get(level),
+                ball.position(), 3.2D);
+        if (rival == null) {
+            return;
+        }
+        double sign = level.random.nextBoolean() ? 1.0D : -1.0D;
+        Vec3 side = new Vec3(-dribbleDir.z * sign, 0.0D, dribbleDir.x * sign);
+        npc.setDeltaMovement(side.x * 0.75D, npc.getDeltaMovement().y, side.z * 0.75D);
+        npc.hasImpulse = true;
+        feintCooldown = FEINT_COOLDOWN_TICKS;
+        level.sendParticles(ParticleTypes.CLOUD, npc.getX(), npc.getY() + 0.1D, npc.getZ(),
+                6, 0.25D, 0.1D, 0.25D, 0.02D);
     }
 
     private void maybeTackle(ServerLevel level, MatchManager manager) {
@@ -373,7 +567,7 @@ public class NpcPlayGoal extends Goal {
         carryTicks++;
         npc.getNavigation().stop();
         Vec3 aim = Vec3.atBottomCenterOf(attackGoal);
-        SoccerNpcEntity outlet = pickPassTarget(level, manager, attackGoal);
+        SoccerNpcEntity outlet = pickPassTarget(level, manager, attackGoal, false);
         if (outlet != null) {
             aim = outlet.position().add(0.0D, 1.2D, 0.0D);
         }
@@ -608,9 +802,17 @@ public class NpcPlayGoal extends Goal {
 
     private void moveToward(Vec3 target, double speed) {
         if (npc.distanceToSqr(target.x, target.y, target.z) > 1.2D) {
-            npc.getNavigation().moveTo(target.x, target.y, target.z, speed);
+            // Re-issue a path only when the target moved meaningfully or the
+            // previous path finished; recalculating every tick against a
+            // rolling ball produced visible stop-and-go stuttering.
+            if (lastPathTarget == null || npc.getNavigation().isDone()
+                    || lastPathTarget.distanceToSqr(target) > 2.25D) {
+                npc.getNavigation().moveTo(target.x, target.y, target.z, speed);
+                lastPathTarget = target;
+            }
         } else {
             npc.getNavigation().stop();
+            lastPathTarget = null;
         }
         npc.getLookControl().setLookAt(target.x, target.y + 1.0D, target.z);
     }
@@ -670,24 +872,27 @@ public class NpcPlayGoal extends Goal {
             }
             double side = (npc.getSquadIndex() % 2 == 0) ? 2.0D : -2.0D;
             Vec3 lateral = new Vec3(-toOwnGoal.z * side, 0.0D, toOwnGoal.x * side);
-            Vec3 supportSpot = ballPoint.add(toOwnGoal.scale(4.5D)).add(lateral);
-            return home.lerp(supportSpot, possession ? 0.8D : 0.6D);
+            Vec3 supportSpot = ballPoint.add(toOwnGoal.scale(4.0D)).add(lateral);
+            // Blend conservatively: a support bot that fully tracks the ball
+            // reproduces the forward/back jitter whenever the ball moves.
+            return home.lerp(supportSpot, possession ? 0.6D : 0.45D);
         }
 
         // Shape players: shift upfield while attacking, drop while defending,
-        // and always drift toward the ball so no bot is left fully idle.
+        // and drift only slightly toward the ball so the formation stays
+        // readable instead of the whole squad clumping around the ball.
         Vec3 shifted = home;
         if (possession) {
             Vec3 push = new Vec3(attackGoal.getX() + 0.5D - home.x, 0.0D,
                     attackGoal.getZ() + 0.5D - home.z);
             if (push.lengthSqr() > 1.0E-6D) {
-                shifted = home.add(push.normalize().scale(3.0D));
+                shifted = home.add(push.normalize().scale(2.5D));
             }
         }
         if (npc.distanceToSqr(ballPoint) <= HOME_DRIFT_DISTANCE_SQR) {
             return shifted;
         }
-        return shifted.lerp(ballPoint, possession ? 0.42D : 0.3D);
+        return shifted.lerp(ballPoint, 0.2D);
     }
 
     /**
@@ -708,7 +913,7 @@ public class NpcPlayGoal extends Goal {
         double speed = flatVelocity.length();
         double alignment = flatVelocity.normalize()
                 .dot(new Vec3(toBot.x, 0.0D, toBot.z).normalize());
-        if (alignment < 0.75D || toBot.horizontalDistanceSqr() > 144.0D) {
+        if (alignment < 0.55D || toBot.horizontalDistanceSqr() > 256.0D) {
             return null;
         }
         double travelTime = Math.min(toBot.horizontalDistance() / speed, 8.0D);
@@ -721,11 +926,11 @@ public class NpcPlayGoal extends Goal {
      * opponent. Returns {@code null} when no safe option exists.
      */
     private SoccerNpcEntity pickPassTarget(ServerLevel level, MatchManager manager,
-                                           BlockPos attackGoal) {
+                                           BlockPos attackGoal, boolean allowBackward) {
         if (ball == null) {
             return null;
         }
-        AABB searchArea = npc.getBoundingBox().inflate(24.0D);
+        AABB searchArea = npc.getBoundingBox().inflate(28.0D);
         SoccerNpcEntity best = null;
         double bestScore = Double.NEGATIVE_INFINITY;
         double ownGoalDistance = horizontalDistanceSqr(npc.position(), attackGoal);
@@ -739,15 +944,20 @@ public class NpcPlayGoal extends Goal {
             }
             double candidateGoalDistance = horizontalDistanceSqr(candidate.position(), attackGoal);
             double progress = ownGoalDistance - candidateGoalDistance;
-            if (progress <= -2.0D) {
+            // Under pressure a safety pass backward is allowed; otherwise keep
+            // the passing network oriented toward the attacked goal.
+            if (progress <= (allowBackward ? -10.0D : -2.0D)) {
                 continue;
             }
-            if (!laneIsClear(level, manager, ball.position(), candidate.position(), 1.6D)) {
+            if (!laneIsClear(level, manager, ball.position(), candidate.position(), PASS_LANE_WIDTH)) {
                 continue;
             }
-            double pressurePenalty = nearestOpponentWithin(level, manager,
-                    candidate.position(), 3.0D) != null ? 8.0D : 0.0D;
-            double score = progress * 1.2D - 0.15D * npc.distanceToSqr(candidate) - pressurePenalty;
+            boolean marked = nearestOpponentWithin(level, manager,
+                    candidate.position(), 3.0D) != null;
+            double openness = marked ? 0.0D : 6.0D;
+            double pressurePenalty = marked ? 8.0D : 0.0D;
+            double score = progress * 1.2D + openness
+                    - 0.12D * npc.distanceToSqr(candidate) - pressurePenalty;
             if (score > bestScore) {
                 bestScore = score;
                 best = candidate;
@@ -834,19 +1044,6 @@ public class NpcPlayGoal extends Goal {
         double dx = position.x - (target.getX() + 0.5D);
         double dz = position.z - (target.getZ() + 0.5D);
         return dx * dx + dz * dz;
-    }
-
-    /** The outfield bot of this team nearest to the ball does the pressing. */
-    private boolean isChaser(ServerLevel level, MatchManager manager) {
-        if (npc.isKeeper() || ball == null) {
-            return false;
-        }
-        // A ball held by our own keeper is not chased by our outfield players.
-        if (ball.isCarried() && ball.getCarrier() instanceof LivingEntity carrier
-                && manager.teamOf(carrier) == npc.getSportTeam()) {
-            return false;
-        }
-        return computeRank(level) == 0;
     }
 
     /** Distance rank of this bot among its team's outfield bots (0 = closest). */
