@@ -60,6 +60,8 @@ public class SportsBallItem extends Item {
         Vec3 spawnPos = new Vec3(player.getX(), player.getEyeY() - 0.25D, player.getZ());
         SoccerBallEntity ball = SoccerBallEntity.spawn(level, spawnPos, ballType);
         ball.setDeltaMovement(look.scale(MAX_THROW_SPEED * power));
+        // Strafe input while throwing bends the airborne ball (falso).
+        ball.applyPlayerSpin(player);
 
         if (!player.getAbilities().instabuild) {
             stack.shrink(1);

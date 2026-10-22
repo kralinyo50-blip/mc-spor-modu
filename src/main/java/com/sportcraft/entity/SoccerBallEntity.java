@@ -58,6 +58,12 @@ public class SoccerBallEntity extends Entity {
     private int roofEscapeCooldown;
     private float visualYaw;
     private float visualRoll;
+    /**
+     * Signed side spin (falso). Positive bends the airborne ball to the left
+     * of its travel direction, negative to the right. Set from the kicker's
+     * strafe input and decayed every tick while airborne.
+     */
+    private float spin;
     /** Keeper holding the ball; while non-null the ball follows the carrier and skips physics. */
     private Entity carrier;
 
@@ -113,6 +119,7 @@ public class SoccerBallEntity extends Entity {
         } else {
             setDeltaMovement(getDeltaMovement().add(0.0D, -getBallType().getGravity(), 0.0D));
         }
+        applySpin();
         moveControlled();
         if (onGround()) {
             setDeltaMovement(getDeltaMovement().multiply(
@@ -184,6 +191,7 @@ public class SoccerBallEntity extends Entity {
         Entity holder = carrier;
         carrier = null;
         visualYaw = holder.getYRot();
+        spin = 0.0F;
         setDeltaMovement(throwVelocity);
         kickCooldown = 10;
         hasImpulse = true;
@@ -199,6 +207,7 @@ public class SoccerBallEntity extends Entity {
         carrier = null;
         moveTo(position.x, position.y, position.z, 0.0F, 0.0F);
         setDeltaMovement(Vec3.ZERO);
+        spin = 0.0F;
         hasImpulse = true;
         kickCooldown = 25;
         goalCooldown = 40;
@@ -261,6 +270,37 @@ public class SoccerBallEntity extends Entity {
         return kickCooldown;
     }
 
+    /**
+     * Magnus effect: an airborne spinning ball curves perpendicular to its
+     * travel. Grounded balls roll straight (spin only decays), matching the
+     * reference "ok tuşlarıyla falso" feel where curl applies to shots and
+     * lifted passes.
+     */
+    private void applySpin() {
+        if (spin == 0.0F || onGround()) {
+            if (spin != 0.0F && onGround()) {
+                spin *= 0.6F;
+            }
+            return;
+        }
+        Vec3 velocity = getDeltaMovement();
+        Vec3 flat = new Vec3(velocity.x, 0.0D, velocity.z);
+        if (flat.lengthSqr() < 0.01D) {
+            return;
+        }
+        Vec3 leftNormal = new Vec3(-flat.z, 0.0D, flat.x).normalize();
+        setDeltaMovement(velocity.add(leftNormal.scale(spin * 0.045D)));
+        spin *= 0.94F;
+        if (Math.abs(spin) < 0.01F) {
+            spin = 0.0F;
+        }
+    }
+
+    /** Stores side spin from a player's strafe input (A/D while kicking). */
+    public void applyPlayerSpin(Player player) {
+        this.spin = Mth.clamp(player.xxa, -1.0F, 1.0F) * 0.9F;
+    }
+
     public int getGoalCooldown() {
         return goalCooldown;
     }
@@ -279,6 +319,7 @@ public class SoccerBallEntity extends Entity {
         double upward = 0.22D + Math.max(0.0D, look.y) * 0.45D;
         setDeltaMovement(look.x * speed, upward, look.z * speed);
         visualYaw = player.getYRot();
+        applyPlayerSpin(player);
         kickCooldown = KICK_COOLDOWN_TICKS;
         hasImpulse = true;
         level().playSound(null, this, ModSounds.KICK.get(), SoundSource.PLAYERS, 1.0F, 1.0F);
@@ -292,6 +333,7 @@ public class SoccerBallEntity extends Entity {
         Vec3 look = player.getLookAngle();
         setDeltaMovement(look.x * 0.75D, 0.18D, look.z * 0.75D);
         visualYaw = player.getYRot();
+        applyPlayerSpin(player);
         kickCooldown = KICK_COOLDOWN_TICKS;
         hasImpulse = true;
         level().playSound(null, this, ModSounds.KICK.get(), SoundSource.PLAYERS, 0.6F, 1.4F);
@@ -328,6 +370,8 @@ public class SoccerBallEntity extends Entity {
         Vec3 dir = direction.normalize();
         setDeltaMovement(dir.x * speed, upward + Math.max(0.0D, -dir.y) * 0.2D, dir.z * speed);
         visualYaw = mob.getYRot();
+        // Bot strikes are straight: do not inherit curl from a player's shot.
+        spin = 0.0F;
         kickCooldown = 8;
         hasImpulse = true;
         level().playSound(null, this, ModSounds.KICK.get(), SoundSource.PLAYERS, 0.9F, 1.0F);
@@ -351,6 +395,7 @@ public class SoccerBallEntity extends Entity {
         Vec3 dir = horizontal.normalize();
         setDeltaMovement(dir.x * speed, arc, dir.z * speed);
         visualYaw = mob.getYRot();
+        spin = 0.0F;
         kickCooldown = 10;
         hasImpulse = true;
         level().playSound(null, this, ModSounds.KICK.get(), SoundSource.PLAYERS, 1.0F, 0.85F);
@@ -372,6 +417,7 @@ public class SoccerBallEntity extends Entity {
         }
         dir = dir.normalize();
         setDeltaMovement(dir.x * 0.62D, 0.46D, dir.z * 0.62D);
+        spin = 0.0F;
         hasImpulse = true;
     }
 
@@ -383,6 +429,7 @@ public class SoccerBallEntity extends Entity {
         carrier = null;
         moveTo(pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D, 0.0F, 0.0F);
         setDeltaMovement(Vec3.ZERO);
+        spin = 0.0F;
         hasImpulse = true;
         kickCooldown = 10;
         goalCooldown = 60;
@@ -551,6 +598,7 @@ public class SoccerBallEntity extends Entity {
         tag.putFloat("Roll", visualRoll);
         tag.putInt("KickCooldown", kickCooldown);
         tag.putInt("GoalCooldown", goalCooldown);
+        tag.putFloat("Spin", spin);
     }
 
     @Override
@@ -559,6 +607,7 @@ public class SoccerBallEntity extends Entity {
         visualRoll = tag.getFloat("Roll");
         kickCooldown = tag.getInt("KickCooldown");
         goalCooldown = tag.getInt("GoalCooldown");
+        spin = tag.contains("Spin") ? tag.getFloat("Spin") : 0.0F;
     }
 
     @Override

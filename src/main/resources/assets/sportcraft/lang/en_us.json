@@ -33,6 +33,7 @@
   "key.categories.sportcraft": "SportCraft",
   "key.sportcraft.match_menu": "Open Match Menu",
   "key.sportcraft.slide_tackle": "Slide Tackle",
+  "key.sportcraft.pass_request": "Request Pass",
 
   "team.sportcraft.red": "Home",
   "team.sportcraft.blue": "Away",
@@ -108,6 +109,7 @@
   "message.sportcraft.scoreboard_line": "%1$s  %2$s : %3$s  %4$s",
   "message.sportcraft.scoreboard_not_running": "No active match right now",
   "message.sportcraft.yellow_card": "%s received a yellow card",
+  "message.sportcraft.pass_requested": "Pass requested — a teammate will play it on the next touch",
   "message.sportcraft.red_card": "%s received a red card",
   "message.sportcraft.teams_ready": "Teams ready: Home %1$s, Away %2$s — Referee: %3$s",
   "message.sportcraft.referee_present": "on pitch",

@@ -3,6 +3,7 @@ package com.sportcraft.client;
 import com.sportcraft.SportCraft;
 import com.sportcraft.client.screen.MatchScreen;
 import com.sportcraft.network.ModNetwork;
+import com.sportcraft.network.network_packet.RequestPassC2S;
 import com.sportcraft.network.network_packet.SlideTackleC2S;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.api.distmarker.Dist;
@@ -32,6 +33,11 @@ public class ClientForgeEvents {
         while (KeyBindings.SLIDE_TACKLE.consumeClick()) {
             if (minecraft.screen == null && minecraft.player != null) {
                 ModNetwork.CHANNEL.sendToServer(new SlideTackleC2S());
+            }
+        }
+        while (KeyBindings.REQUEST_PASS.consumeClick()) {
+            if (minecraft.screen == null && minecraft.player != null) {
+                ModNetwork.CHANNEL.sendToServer(new RequestPassC2S());
             }
         }
     }

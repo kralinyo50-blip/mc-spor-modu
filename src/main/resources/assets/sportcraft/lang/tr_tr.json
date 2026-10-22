@@ -33,6 +33,7 @@
   "key.categories.sportcraft": "SportCraft",
   "key.sportcraft.match_menu": "Maç Menüsünü Aç",
   "key.sportcraft.slide_tackle": "Kayarak Müdahale",
+  "key.sportcraft.pass_request": "Pas İste",
 
   "team.sportcraft.red": "Ev Sahibi",
   "team.sportcraft.blue": "Deplasman",
@@ -108,6 +109,7 @@
   "message.sportcraft.scoreboard_line": "%1$s  %2$s : %3$s  %4$s",
   "message.sportcraft.scoreboard_not_running": "Şu anda aktif maç yok",
   "message.sportcraft.yellow_card": "%s sarı kart gördü",
+  "message.sportcraft.pass_requested": "Pas istendi — takım arkadaşın en uygun temasda pas atacak",
   "message.sportcraft.red_card": "%s kırmızı kart gördü",
   "message.sportcraft.teams_ready": "Takımlar hazır: Ev %1$s, Deplasman %2$s — Hakem: %3$s",
   "message.sportcraft.referee_present": "sahada",
