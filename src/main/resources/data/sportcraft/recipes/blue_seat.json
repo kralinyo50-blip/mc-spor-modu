@@ -1,6 +1,0 @@
-{
-  "type": "minecraft:crafting_shaped",
-  "pattern": ["W", "W"],
-  "key": {"W": {"item": "minecraft:blue_wool"}},
-  "result": {"item": "sportcraft:blue_seat", "count": 2}
-}

@@ -1,11 +1,11 @@
 @echo off
 setlocal enabledelayedexpansion
 chcp 65001 >nul
-title SportCraft JAR Derleyici
+title mcsport JAR Derleyici
 cd /d "%~dp0"
 
 echo ============================================================
-echo            SportCraft - Tek TIK JAR Derleyici
+echo            mcsport - Tek TIK JAR Derleyici
 echo ============================================================
 echo.
 
@@ -76,14 +76,14 @@ REM 4) Uretilen JAR'i dogrula
 REM ---------------------------------------------------------------
 set "JAR="
 set "JARNAME="
-for %%F in (build\libs\sportcraft-*.jar) do (
+for %%F in (build\libs\mcsport-*.jar) do (
     if exist "%%F" (
         set "JAR=%%F"
         set "JARNAME=%%~nxF"
     )
 )
 if not defined JAR (
-    echo [HATA] Derleme bitti ama build\libs altinda sportcraft JAR'i yok.
+    echo [HATA] Derleme bitti ama build\libs altinda mcsport JAR'i yok.
     goto :fail
 )
 

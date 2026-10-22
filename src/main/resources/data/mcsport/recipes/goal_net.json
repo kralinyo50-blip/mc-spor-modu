@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": ["SSS", "SWS", "SSS"],
+  "key": {
+    "S": {"item": "minecraft:string"},
+    "W": {"item": "minecraft:white_wool"}
+  },
+  "result": {"item": "mcsport:goal_net", "count": 2}
+}

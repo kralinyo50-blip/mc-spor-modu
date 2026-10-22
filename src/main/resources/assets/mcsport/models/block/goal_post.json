@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "mcsport:block/goal_post",
+    "particle": "mcsport:block/goal_post"
+  }
+}

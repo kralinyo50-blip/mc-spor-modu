@@ -1,7 +1,0 @@
-{
-  "parent": "minecraft:block/cube_all",
-  "textures": {
-    "all": "sportcraft:block/goal_net",
-    "particle": "sportcraft:block/goal_net"
-  }
-}

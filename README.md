@@ -1,12 +1,12 @@
-# SportCraft — Minecraft Forge 1.20.1 Spor (Futbol) Modu
+# mcsport — Minecraft Forge 1.20.1 Spor (Futbol) Modu
 
-SportCraft; Minecraft Java Edition 1.20.1 / Forge 47.x için gerçekten çalışan,
+mcsport; Minecraft Java Edition 1.20.1 / Forge 47.x için gerçekten çalışan,
 sunucu-otoriter futbol mekanikleri sunan bir moddur. Fizikli bir futbol topu,
 kale blokları, gol algılama, takımlar, skor/maç yönetimi, HUD ve maç ekranı,
 crafting tarifleri ve tam kaynak paketi içerir.
 
-- **Mod ID:** `sportcraft`
-- **Görünen ad:** SportCraft
+- **Mod ID:** `mcsport`
+- **Görünen ad:** mcsport
 - **Hedef sürüm:** Minecraft 1.20.1, Forge 47.2.0 (47.x uyumlu)
 - **Java:** 17
 - **Derleme:** Gradle 8.1.1 + ForgeGradle 6 (wrapper dahil)
@@ -41,24 +41,24 @@ için bkz. [`docs/HIGGSFIELD_PROMPTS.md`](docs/HIGGSFIELD_PROMPTS.md).
 
 | Kayıt adı | Türkçe ad | İşlev |
 |---|---|---|
-| `sportcraft:artificial_turf` | Suni Çim | Saha zemini, normal katı blok |
-| `sportcraft:field_line` | Saha Çizgisi | Halı benzeri ince çizgi bloğu (cutout render) |
-| `sportcraft:red_goal` | Kırmızı Kale | Kale ağzı; önündeki bölgeden gol algılar, kırmızı file |
-| `sportcraft:blue_goal` | Mavi Kale | Kale ağzı; önündeki bölgeden gol algılar, mavi file |
+| `mcsport:artificial_turf` | Suni Çim | Saha zemini, normal katı blok |
+| `mcsport:field_line` | Saha Çizgisi | Halı benzeri ince çizgi bloğu (cutout render) |
+| `mcsport:red_goal` | Kırmızı Kale | Kale ağzı; önündeki bölgeden gol algılar, kırmızı file |
+| `mcsport:blue_goal` | Mavi Kale | Kale ağzı; önündeki bölgeden gol algılar, mavi file |
 
 ### Eşyalar
 
 | Kayıt adı | Türkçe ad | İşlev |
 |---|---|---|
-| `sportcraft:soccer_ball` | Futbol Topu | Sağ tık basılı tut → şarj et, bırak → fırlat |
-| `sportcraft:whistle` | Hakem Düdüğü | Maç yönetim ekranını açar, düdük sesi çalar |
+| `mcsport:soccer_ball` | Futbol Topu | Sağ tık basılı tut → şarj et, bırak → fırlat |
+| `mcsport:whistle` | Hakem Düdüğü | Maç yönetim ekranını açar, düdük sesi çalar |
 
 ### Entity
 
 | Kayıt adı | İşlev |
 |---|---|
-| `sportcraft:soccer_ball` | Sunucu taraflı fizik simülasyonu yapan spor topu (futbol/basketbol) |
-| `sportcraft:soccer_npc` | AI oyuncu; takıma göre bot, kaleci veya sarı formalı hakem olarak doğar |
+| `mcsport:soccer_ball` | Sunucu taraflı fizik simülasyonu yapan spor topu (futbol/basketbol) |
+| `mcsport:soccer_npc` | AI oyuncu; takıma göre bot, kaleci veya sarı formalı hakem olarak doğar |
 
 ### Hakem ve kararları
 - Her maç başında orta nokta yanında bir **hakem NPC'si** doğar (sarı forma, "Hakem" etiketi).
@@ -80,16 +80,16 @@ için bkz. [`docs/HIGGSFIELD_PROMPTS.md`](docs/HIGGSFIELD_PROMPTS.md).
 | **Sağ tık (düdük)** | Maç yönetim ekranını aç |
 
 Tuş ataması Minecraft'ın standart **Seçenekler → Kontroller** menüsündeki
-"SportCraft" kategorisinden değiştirilebilir.
+"mcsport" kategorisinden değiştirilebilir.
 
 ### Komutlar
 
 ```
-/sportcraft join red|blue|spectator
-/sportcraft start [dakika]      # yetki seviyesi 2 (operatör)
-/sportcraft pause               # yetki seviyesi 2
-/sportcraft resume              # yetki seviyesi 2
-/sportcraft reset               # yetki seviyesi 2
+/mcsport join red|blue|spectator
+/mcsport start [dakika]      # yetki seviyesi 2 (operatör)
+/mcsport pause               # yetki seviyesi 2
+/mcsport resume              # yetki seviyesi 2
+/mcsport reset               # yetki seviyesi 2
 ```
 
 ## 5. Uygulanan mekanikler
@@ -167,7 +167,7 @@ Kısa sürüm:
 ```bash
 # JDK 17 kurulu olmalı
 ./gradlew build
-# Üretilen JAR: build/libs/sportcraft-1.0.0.jar
+# Üretilen JAR: build/libs/mcsport-1.0.0.jar
 ```
 
 Detaylı kurulum, IDE ayarları ve test çalıştırma:
@@ -184,21 +184,21 @@ ile JAR üretilebilir.
 ## 8. Proje yapısı
 
 ```
-src/main/java/com/sportcraft/
-├── SportCraft.java               # Mod giriş noktası
+src/main/java/com/mcsport/
+├── mcsport.java               # Mod giriş noktası
 ├── registry/                     # DeferredRegister kayıtları
 ├── entity/SoccerBallEntity.java  # Fizikli top
 ├── block/ + blockentity/         # Bloklar ve gol BlockEntity'si
 ├── item/                         # Top ve düdük eşyaları
 ├── match/                        # Takım, durum, MatchManager (SavedData)
 ├── network/                      # SimpleChannel + paketler
-├── event/                        # Forge olayları ve /sportcraft komutu
+├── event/                        # Forge olayları ve /mcsport komutu
 └── client/                       # Renderer, model, HUD, ekran, tuşlar
 src/main/resources/
 ├── META-INF/mods.toml
 ├── pack.mcmeta
-├── assets/sportcraft/            # Modeller, blockstate, doku, lang, ses
-└── data/sportcraft/              # Tarifler ve loot tabloları
+├── assets/mcsport/            # Modeller, blockstate, doku, lang, ses
+└── data/mcsport/              # Tarifler ve loot tabloları
 tools/generate_textures.py        # Tüm dokuları üreten betik
 ```
 

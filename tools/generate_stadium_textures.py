@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the 16x16 PNG textures for the extra SportCraft stadium blocks.
+"""Generate the 16x16 PNG textures for the extra mcsport stadium blocks.
 
 Pure standard library (zlib + struct), same approach as
 generate_ball_textures.py: four extra club-coloured seats plus the arena
@@ -10,7 +10,7 @@ import struct
 import zlib
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-OUT = os.path.join(ROOT, "src/main/resources/assets/sportcraft/textures/block")
+OUT = os.path.join(ROOT, "src/main/resources/assets/mcsport/textures/block")
 
 
 def write_png(path, width, height, pixels):

@@ -1,4 +1,4 @@
-# SportCraft - JDK 17 derleme yardimcisi
+# mcsport - JDK 17 derleme yardimcisi
 #
 # Makinede kurulu JDK 17'yi otomatik bulur, JAVA_HOME'u o oturum icin ayarlar
 # ve Gradle wrapper'i dogru Java ile calistirir. Sistemdeki Java 21'i degistirmez.

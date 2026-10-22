@@ -1,0 +1,8 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {"item": "mcsport:artificial_turf"},
+    {"item": "minecraft:green_dye"}
+  ],
+  "result": {"item": "mcsport:artificial_turf_dark", "count": 1}
+}

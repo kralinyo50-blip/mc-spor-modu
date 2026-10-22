@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:block/carpet",
+  "textures": {
+    "wool": "mcsport:block/field_line",
+    "particle": "mcsport:block/field_line"
+  }
+}
