@@ -100,6 +100,7 @@
   "gui.sportcraft.your_team": "Your team: %s",
   "gui.sportcraft.keeper_tag": "Goalkeeper",
   "gui.sportcraft.shift_hint": "Shift + click: cycle option backwards",
+  "gui.sportcraft.locked_hint": "Setup options are locked while a match is running — pause or reset first",
 
   "hud.sportcraft.charge": "Throw Power",
 

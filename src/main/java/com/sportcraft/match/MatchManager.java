@@ -86,6 +86,17 @@ public class MatchManager extends SavedData {
     private boolean ceremonyStarted;
     private int ceremonyTicks;
 
+    // Stable presser (chaser) assignment per team. Without shared state every
+    // bot recomputed "am I the closest?" independently, so two nearby bots
+    // swapped the role every few ticks and oscillated forward/backward. The
+    // manager picks one presser and keeps it until a teammate is clearly
+    // closer (hysteresis), giving the whole squad deterministic roles.
+    private UUID redChaser;
+    private UUID blueChaser;
+    private int chaserRefreshTick = Integer.MIN_VALUE / 2;
+    private static final int CHASER_REFRESH_INTERVAL = 15;
+    private static final double CHASER_HYSTERESIS_SQR = 6.25D;
+
     /** Outcome of a bot population run, used for the operator summary message. */
     public record PopulateResult(int redBots, int blueBots, int redPlayers,
                                  int bluePlayers, boolean referee) {
@@ -226,6 +237,8 @@ public class MatchManager extends SavedData {
         // cause of the "one bot missing in 1v1" report).
         teams.clear();
         keepers.clear();
+        redChaser = null;
+        blueChaser = null;
         setDirty();
     }
 
@@ -307,6 +320,8 @@ public class MatchManager extends SavedData {
         extraTimeUsed = false;
         ceremonyStarted = false;
         ceremonyTicks = 0;
+        redChaser = null;
+        blueChaser = null;
         endFreeKick();
         foulCounts.clear();
         yellowCardCounts.clear();
@@ -368,6 +383,8 @@ public class MatchManager extends SavedData {
             }
         }
         npcIds.clear();
+        redChaser = null;
+        blueChaser = null;
     }
 
     private int countRealPlayers(MinecraftServer server, Team team) {
@@ -716,6 +733,96 @@ public class MatchManager extends SavedData {
             }
         }
         return nearest;
+    }
+
+    // ------------------------------------------------------------------
+    // Stable chaser assignment
+    // ------------------------------------------------------------------
+
+    /**
+     * The single outfield bot of {@code team} that currently presses the ball.
+     * The assignment is refreshed on a throttle with distance hysteresis, so
+     * nearby bots never flip the role tick by tick.
+     */
+    public SoccerNpcEntity getChaser(ServerLevel level, Team team) {
+        if (team != Team.RED && team != Team.BLUE) {
+            return null;
+        }
+        refreshChasers(level);
+        UUID id = team == Team.RED ? redChaser : blueChaser;
+        if (id != null && level.getEntity(id) instanceof SoccerNpcEntity npc
+                && npc.isAlive() && !npc.isRemoved() && !npc.isReferee()
+                && !npc.isKeeper() && npc.getSportTeam() == team) {
+            return npc;
+        }
+        return null;
+    }
+
+    private void refreshChasers(ServerLevel level) {
+        if (fieldCenter == null) {
+            redChaser = null;
+            blueChaser = null;
+            return;
+        }
+        int now = level.getServer().getTickCount();
+        boolean fresh = now - chaserRefreshTick >= CHASER_REFRESH_INTERVAL;
+        if (!fresh && chaserValid(level, redChaser, Team.RED)
+                && chaserValid(level, blueChaser, Team.BLUE)) {
+            return;
+        }
+        chaserRefreshTick = now;
+        SoccerBallEntity ball = findNearestBall(level);
+        redChaser = pickChaser(level, Team.RED, ball, redChaser);
+        blueChaser = pickChaser(level, Team.BLUE, ball, blueChaser);
+    }
+
+    private boolean chaserValid(ServerLevel level, UUID id, Team team) {
+        if (id == null || !(level.getEntity(id) instanceof SoccerNpcEntity npc)) {
+            return false;
+        }
+        return npc.isAlive() && !npc.isRemoved() && !npc.isReferee()
+                && !npc.isKeeper() && npc.getSportTeam() == team;
+    }
+
+    private UUID pickChaser(ServerLevel level, Team team, SoccerBallEntity ball, UUID current) {
+        if (ball == null) {
+            return null;
+        }
+        // While our own keeper holds the ball the outfield squad stays in
+        // shape instead of bunching around the holder.
+        if (ball.isCarried() && ball.getCarrier() instanceof LivingEntity carrier
+                && teamOf(carrier) == team) {
+            return null;
+        }
+        AABB area = new AABB(fieldCenter).inflate(64.0D);
+        SoccerNpcEntity nearest = null;
+        double nearestSqr = Double.MAX_VALUE;
+        for (SoccerNpcEntity npc : level.getEntitiesOfClass(SoccerNpcEntity.class, area)) {
+            if (npc.isReferee() || npc.isKeeper() || npc.getSportTeam() != team
+                    || !npc.isAlive()) {
+                continue;
+            }
+            double distanceSqr = npc.distanceToSqr(ball);
+            if (distanceSqr < nearestSqr) {
+                nearestSqr = distanceSqr;
+                nearest = npc;
+            }
+        }
+        if (nearest == null) {
+            return null;
+        }
+        if (current != null && nearest.getUUID().equals(current)) {
+            return current;
+        }
+        // Hysteresis: keep the current presser until a teammate gets clearly
+        // closer, which removes the role-swap oscillation around contested balls.
+        if (current != null && level.getEntity(current) instanceof SoccerNpcEntity holder
+                && holder.isAlive() && !holder.isKeeper() && holder.getSportTeam() == team) {
+            if (holder.distanceToSqr(ball) <= nearestSqr + CHASER_HYSTERESIS_SQR) {
+                return current;
+            }
+        }
+        return nearest.getUUID();
     }
 
     public int getLastFoulTick() {

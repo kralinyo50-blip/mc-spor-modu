@@ -50,6 +50,19 @@ public class MatchScreen extends Screen {
     private Button homeClubButton;
     private Button awayClubButton;
     private Button startButton;
+    private Button buildButton;
+    private Button joinRedButton;
+    private Button joinBlueButton;
+    private Button keeperRedButton;
+    private Button keeperBlueButton;
+    private Button leaveButton;
+
+    // Optimistic join feedback: the click is shown immediately with an
+    // ellipsis and replaced by the authoritative check mark once the server
+    // snapshot arrives, so the buttons never look frozen.
+    private Team pendingTeam;
+    private boolean pendingKeeper;
+    private int pendingTicks;
 
     public MatchScreen() {
         super(Component.translatable("gui.sportcraft.match_title"));
@@ -71,7 +84,7 @@ public class MatchScreen extends Screen {
         row++;
 
         // Row 2: one-click field build across both columns.
-        addRenderableWidget(Button.builder(
+        buildButton = addRenderableWidget(Button.builder(
                         Component.translatable("gui.sportcraft.build_field"),
                         b -> ModNetwork.CHANNEL.sendToServer(new BuildFieldC2S(draft.getFieldSize())))
                 .bounds(left, top + row * ROW_STEP, COL_WIDTH * 2 + GAP, ROW_HEIGHT).build());
@@ -106,31 +119,31 @@ public class MatchScreen extends Screen {
         row++;
 
         // Row 7: join home / away.
-        addRenderableWidget(Button.builder(
+        joinRedButton = addRenderableWidget(Button.builder(
                         Component.translatable("gui.sportcraft.join_red"),
-                        b -> ModNetwork.CHANNEL.sendToServer(new JoinTeamC2S(Team.RED, false)))
+                        b -> requestJoin(Team.RED, false))
                 .bounds(left, top + row * ROW_STEP, COL_WIDTH, ROW_HEIGHT).build());
-        addRenderableWidget(Button.builder(
+        joinBlueButton = addRenderableWidget(Button.builder(
                         Component.translatable("gui.sportcraft.join_blue"),
-                        b -> ModNetwork.CHANNEL.sendToServer(new JoinTeamC2S(Team.BLUE, false)))
+                        b -> requestJoin(Team.BLUE, false))
                 .bounds(right, top + row * ROW_STEP, COL_WIDTH, ROW_HEIGHT).build());
         row++;
 
         // Row 8: goalkeeper join buttons.
-        addRenderableWidget(Button.builder(
+        keeperRedButton = addRenderableWidget(Button.builder(
                         Component.translatable("gui.sportcraft.keeper_red"),
-                        b -> ModNetwork.CHANNEL.sendToServer(new JoinTeamC2S(Team.RED, true)))
+                        b -> requestJoin(Team.RED, true))
                 .bounds(left, top + row * ROW_STEP, COL_WIDTH, ROW_HEIGHT).build());
-        addRenderableWidget(Button.builder(
+        keeperBlueButton = addRenderableWidget(Button.builder(
                         Component.translatable("gui.sportcraft.keeper_blue"),
-                        b -> ModNetwork.CHANNEL.sendToServer(new JoinTeamC2S(Team.BLUE, true)))
+                        b -> requestJoin(Team.BLUE, true))
                 .bounds(right, top + row * ROW_STEP, COL_WIDTH, ROW_HEIGHT).build());
         row++;
 
         // Row 9: leave team and start match.
-        addRenderableWidget(Button.builder(
+        leaveButton = addRenderableWidget(Button.builder(
                         Component.translatable("gui.sportcraft.leave_team"),
-                        b -> ModNetwork.CHANNEL.sendToServer(new JoinTeamC2S(Team.SPECTATOR, false)))
+                        b -> requestJoin(Team.SPECTATOR, false))
                 .bounds(left, top + row * ROW_STEP, COL_WIDTH, ROW_HEIGHT).build());
         startButton = addRenderableWidget(Button.builder(
                         Component.translatable("gui.sportcraft.start"),
@@ -240,11 +253,44 @@ public class MatchScreen extends Screen {
         ModNetwork.CHANNEL.sendToServer(new MatchSettingsC2S(draft));
     }
 
+    /** Sends the join packet and arms the optimistic pending feedback. */
+    private void requestJoin(Team team, boolean keeper) {
+        pendingTeam = team;
+        pendingKeeper = keeper && team != Team.SPECTATOR;
+        pendingTicks = 15;
+        ModNetwork.CHANNEL.sendToServer(new JoinTeamC2S(team, keeper));
+    }
+
     @Override
     public void tick() {
         // Re-sync with the authoritative snapshot so rejected edits revert and
         // changes made by another operator appear immediately.
         draft = ClientMatchData.INSTANCE.getSettings().copy();
+        if (pendingTicks > 0) {
+            pendingTicks--;
+            // The server snapshot already reflects the requested assignment:
+            // drop the pending ellipsis in favour of the confirmed check mark.
+            ClientMatchData data = ClientMatchData.INSTANCE;
+            if (data.getLocalTeam() == pendingTeam
+                    && data.isLocalKeeper() == pendingKeeper) {
+                pendingTicks = 0;
+            }
+        }
+    }
+
+    /** Join-button label: green check when active, gold ellipsis while pending. */
+    private MutableComponent joinLabel(String baseKey, Team team, boolean keeper) {
+        MutableComponent label = Component.translatable(baseKey);
+        boolean confirmed = ClientMatchData.INSTANCE.getLocalTeam() == team
+                && ClientMatchData.INSTANCE.isLocalKeeper() == keeper;
+        boolean pending = pendingTicks > 0 && pendingTeam == team && pendingKeeper == keeper;
+        if (pending) {
+            return label.append(" …").withStyle(ChatFormatting.GOLD);
+        }
+        if (confirmed) {
+            return label.append(" ✓").withStyle(ChatFormatting.GREEN);
+        }
+        return label.withStyle(ChatFormatting.GRAY);
     }
 
     @Override
@@ -288,6 +334,29 @@ public class MatchScreen extends Screen {
 
         startButton.active = fieldBuilt && data.getState() != MatchState.RUNNING;
 
+        // Explicit join feedback: the active slot is highlighted on the
+        // button itself instead of only in the small footer line.
+        joinRedButton.setMessage(joinLabel("gui.sportcraft.join_red", Team.RED, false));
+        joinBlueButton.setMessage(joinLabel("gui.sportcraft.join_blue", Team.BLUE, false));
+        keeperRedButton.setMessage(joinLabel("gui.sportcraft.keeper_red", Team.RED, true));
+        keeperBlueButton.setMessage(joinLabel("gui.sportcraft.keeper_blue", Team.BLUE, true));
+        leaveButton.setMessage(joinLabel("gui.sportcraft.leave_team", Team.SPECTATOR, false));
+
+        // The server rejects setup edits while a match is running; show that
+        // visibly instead of letting buttons silently revert on the next tick.
+        boolean locked = data.getState() == MatchState.RUNNING;
+        sportButton.active = !locked;
+        sizeButton.active = !locked;
+        teamSizeButton.active = !locked;
+        difficultyButton.active = !locked;
+        halfButton.active = !locked;
+        drawButton.active = !locked;
+        homeFormButton.active = !locked;
+        awayFormButton.active = !locked;
+        homeClubButton.active = !locked;
+        awayClubButton.active = !locked;
+        buildButton.active = !locked;
+
         int footerY = height / 2 + 132;
         Component fieldStatus = Component.translatable(
                         fieldBuilt ? "gui.sportcraft.field_ready" : "gui.sportcraft.field_missing")
@@ -304,6 +373,11 @@ public class MatchScreen extends Screen {
         graphics.drawCenteredString(font,
                 Component.translatable("gui.sportcraft.shift_hint"),
                 width / 2, footerY + 24, 0xFF909090);
+        if (locked) {
+            graphics.drawCenteredString(font,
+                    Component.translatable("gui.sportcraft.locked_hint"),
+                    width / 2, footerY + 36, 0xFFFFB0B0);
+        }
     }
 
     private MutableComponent option(String labelKey, Component value) {
