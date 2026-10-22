@@ -13,6 +13,7 @@ import com.sportcraft.match.Team;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.phys.AABB;
@@ -31,13 +32,17 @@ import java.util.List;
  *       holdable balls and punches the rest away, then throws the caught ball
  *       back into play. Slow loose balls are rushed and cleared long.</li>
  *   <li><b>Presser (rank 0)</b> — the outfield bot closest to the ball —
- *       presses, shoots in range, passes through open lanes under pressure
- *       and slide-tackles contests.</li>
+ *       presses, shoots in range, plays through balls into runners' space,
+ *       lobs over blocked lanes, passes through open lanes under pressure
+ *       and slide-tackles contests. Any bot that reaches a loose ball first
+ *       gets the same first-touch decision instead of waiting for the role.</li>
  *   <li><b>Close support (rank 1)</b> tracks behind the ball, collects
  *       intercepted passes and presses loose balls together with rank 0.</li>
- *   <li><b>Support runners</b> keep formation shape but shift upfield in
- *       possession, drop while defending and run onto interception points,
- *       so every bot is a viable passing option.</li>
+ *   <li><b>Support runners</b> keep formation shape but make off-the-ball
+ *       attacking runs into open space (through-ball targets), mark the
+ *       nearest opponent while defending, shift to the ball side and run
+ *       onto predicted interception/landing points, so every bot is a
+ *       viable passing option and nobody stands idle.</li>
  *   <li><b>Free kick</b> freezes everyone into set-piece roles: a taker with
  *       a wind-up kick animation, a three-man defensive wall and support.</li>
  * </ul>
@@ -53,7 +58,6 @@ public class NpcPlayGoal extends Goal {
     // Tighter control range: the presser only touches the ball from ~1.5
     // blocks so dribble taps stay small instead of ping-ponging away.
     private static final double KICK_DISTANCE_SQR = 2.25D;
-    private static final double HOME_DRIFT_DISTANCE_SQR = 25.0D;
     private static final int REPATH_INTERVAL = 12;
     private static final int KICK_LOCK_TICKS = 12;
 
@@ -72,6 +76,22 @@ public class NpcPlayGoal extends Goal {
     private static final double SHOT_LANE_WIDTH = 1.1D;
     private static final double PASS_LANE_WIDTH = 1.4D;
     private static final double GOAL_MOUTH_OFFSET = 1.8D;
+
+    // Positional play: any bot this close to a loose ball steps in as a
+    // secondary presser instead of watching from its formation slot.
+    private static final double SECOND_PRESS_SQR = 16.0D;
+    // Through balls (ara pas): lead distance ahead of the runner plus the
+    // open-space checks around the landing point.
+    private static final double THROUGH_LEAD = 4.0D;
+    private static final double THROUGH_MIN_PROGRESS = 3.5D;
+    private static final double THROUGH_SPACE_RADIUS = 2.6D;
+    // Lofted passes (yüksekten pas): distance band and arc tiers.
+    private static final double LOB_MIN_DIST_SQR = 36.0D;
+    private static final double LOB_MAX_DIST_SQR = 676.0D;
+    // Off-the-ball attacking runs.
+    private static final int RUN_DURATION_TICKS = 42;
+    private static final int RUN_REST_TICKS = 55;
+    private static final double RUN_OPEN_SPACE_RADIUS = 3.0D;
 
     // Goalkeeping
     private static final double KEEPER_SAVE_RANGE_SQR = 49.0D;
@@ -98,12 +118,20 @@ public class NpcPlayGoal extends Goal {
     // Consecutive soft dribble taps; forces a release pass when it runs long.
     private int dribbleHoldTicks;
     private int feintCooldown;
+    // Off-the-ball attacking run window so support players sprint into space
+    // and become through-ball targets instead of standing in their slot.
+    private int runCooldown;
+    private int runTicks;
+    private Vec3 runPoint;
     // Last navigation target, used to skip wasteful path recalculations that
     // made the bots stutter/stop-and-go while following a moving target.
     private Vec3 lastPathTarget;
 
     public NpcPlayGoal(SoccerNpcEntity npc) {
         this.npc = npc;
+        // Stagger the first off-ball run so the whole squad does not sprint
+        // forward on the same tick.
+        this.runCooldown = 25 + Math.floorMod(npc.getId() * 17, 50);
         setFlags(EnumSet.of(Goal.Flag.MOVE, Goal.Flag.JUMP, Goal.Flag.LOOK));
     }
 
@@ -209,6 +237,16 @@ public class NpcPlayGoal extends Goal {
         if (feintCooldown > 0) {
             feintCooldown--;
         }
+        if (runCooldown > 0) {
+            runCooldown--;
+        }
+        if (runTicks > 0) {
+            runTicks--;
+            if (runTicks == 0) {
+                runPoint = null;
+                runCooldown = RUN_REST_TICKS + npc.getRandom().nextInt(35);
+            }
+        }
     }
 
     /**
@@ -242,16 +280,25 @@ public class NpcPlayGoal extends Goal {
 
         DifficultyProfile profile = profile(manager);
 
-        // The designated presser hunts the ball and takes every on-ball
-        // decision; everyone else keeps formation shape as passing options.
+        // First-touch rule: whoever has the loose ball at their feet plays it,
+        // not only the designated presser. The ball's own kick cooldown makes
+        // the first bot to touch it win, so contests never double-kick.
+        if (ball != null && !ball.isCarried() && kickCooldown == 0
+                && npc.distanceToSqr(ball) < KICK_DISTANCE_SQR) {
+            decideWithBall(level, manager, attackGoal, profile);
+            return;
+        }
+
+        // The designated presser hunts the ball from further out; everyone
+        // else keeps formation shape, makes runs and offers passing options.
         if (cachedChaser && ball != null && !ball.isCarried()) {
             tickChaser(level, manager, attackGoal, profile);
             return;
         }
 
         boolean possession = ownTeamInPossession(level, manager);
-        Vec3 target = decideTarget(manager, settings, center, ownGoal, attackGoal, possession);
-        double speed = cachedRank == 1 ? 1.16D : 1.05D;
+        Vec3 target = decideTarget(level, manager, settings, center, ownGoal, attackGoal, possession);
+        double speed = runTicks > 0 ? 1.24D : (cachedRank == 1 ? 1.16D : 1.06D);
         moveToward(target, speed);
         maybeTackle(level, manager);
     }
@@ -295,8 +342,41 @@ public class NpcPlayGoal extends Goal {
             return;
         }
 
-        // 2) Passing network: release under pressure, after carrying too long,
-        // or when a teammate is clearly better placed than the current lane.
+        // 2) Through ball (ara pas): a runner is attacking open space ahead
+        // of the defence, so the pass goes into that space, not at his feet.
+        // Gated so the squad still dribbles and combines instead of launching
+        // one long ball every single touch.
+        if (goalDistanceSqr >= profile.shotRangeSqr() || !goalLane) {
+            Vec3 through = pickThroughBall(level, manager, attackGoal);
+            if (through != null && (pressure != null
+                    || dribbleHoldTicks >= 4 || level.random.nextFloat() < 0.45F)) {
+                ball.kickFromMob(npc, through.subtract(ball.position()), 1.22D, 0.15D);
+                kickCooldown = KICK_LOCK_TICKS;
+                dribbleHoldTicks = 0;
+                npc.startKickWindup();
+                maybeTackle(level, manager);
+                return;
+            }
+        }
+
+        // 3) Lofted pass (yüksekten pas): every ground lane is blocked but a
+        // teammate is open beyond the defenders, so lift the ball over them.
+        SoccerNpcEntity lobTarget = pickLobTarget(level, manager, attackGoal);
+        if (lobTarget != null && (pressure != null || dribbleHoldTicks >= DRIBBLE_STUCK_TAPS)) {
+            Vec3 lobDirection = lobTarget.position().subtract(ball.position());
+            double distance = Math.sqrt(npc.distanceToSqr(lobTarget));
+            double lobSpeed = Math.min(1.15D, 0.78D + distance * 0.018D);
+            double lobUp = distance < 11.0D ? 0.34D : (distance < 18.0D ? 0.44D : 0.54D);
+            ball.kickFromMob(npc, lobDirection, lobSpeed, lobUp);
+            kickCooldown = KICK_LOCK_TICKS;
+            dribbleHoldTicks = 0;
+            npc.startKickWindup();
+            maybeTackle(level, manager);
+            return;
+        }
+
+        // 4) Ground passing network: release under pressure, after carrying
+        // too long, or when a teammate is clearly better placed.
         SoccerNpcEntity passTarget = pickPassTarget(level, manager, attackGoal, pressure != null);
         if (passTarget != null && (pressure != null || dribbleHoldTicks >= DRIBBLE_STUCK_TAPS)) {
             Vec3 passDirection = passTarget.position().add(0.0D, 1.0D, 0.0D)
@@ -310,7 +390,7 @@ public class NpcPlayGoal extends Goal {
             return;
         }
 
-        // 3) Closed down with no outlet: emergency clearance upfield.
+        // 5) Closed down with no outlet: emergency clearance upfield.
         if (pressure != null) {
             ball.kickFromMob(npc, Vec3.atBottomCenterOf(attackGoal).subtract(ball.position()),
                     1.3D, 0.32D);
@@ -320,7 +400,7 @@ public class NpcPlayGoal extends Goal {
             return;
         }
 
-        // 4) Space ahead: carry with a soft, angled touch that bends around
+        // 6) Space ahead: carry with a soft, angled touch that bends around
         // the nearest defender (the dribble/çalım), plus an occasional feint.
         Vec3 dribbleDir = dribbleDirection(level, manager, attackGoal, pressure);
         ball.kickFromMob(npc, dribbleDir, 0.82D, 0.18D);
@@ -750,7 +830,7 @@ public class NpcPlayGoal extends Goal {
         }
 
         if (ball == null || !cachedChaser) {
-            Vec3 home = decideTarget(manager, settings, center, ownGoal, attackGoal,
+            Vec3 home = decideTarget(level, manager, settings, center, ownGoal, attackGoal,
                     ownTeamInPossession(level, manager));
             moveToward(home, 1.05D);
             return;
@@ -821,7 +901,7 @@ public class NpcPlayGoal extends Goal {
     // Shared tactical helpers
     // ------------------------------------------------------------------
 
-    private Vec3 decideTarget(MatchManager manager, MatchSettings settings,
+    private Vec3 decideTarget(ServerLevel level, MatchManager manager, MatchSettings settings,
                               BlockPos center, BlockPos ownGoal, BlockPos attackGoal,
                               boolean possession) {
         FieldSize size = settings.getFieldSize();
@@ -851,19 +931,21 @@ public class NpcPlayGoal extends Goal {
             return ballPoint;
         }
 
-        // Loose ball close by: the second man presses too instead of watching.
-        boolean loose = !ball.isCarried();
-        if (loose && cachedRank == 1 && npc.distanceToSqr(ball) < 36.0D) {
-            return ballPoint;
-        }
-
-        // A pass travelling toward this bot: step onto the interception point.
+        // A pass travelling toward this bot: step onto the predicted meeting
+        // point so through balls and lobs are actively received.
         Vec3 interception = interceptionPoint();
         if (interception != null) {
             return interception;
         }
 
-        // Close support: offer a passing option just behind the ball.
+        // Loose ball within the secondary press window: any nearby bot steps
+        // in, not just the rank-1 support man, so a reachable ball is never
+        // left standing between two idle players.
+        if (!ball.isCarried() && npc.distanceToSqr(ball) < SECOND_PRESS_SQR) {
+            return ballPoint;
+        }
+
+        // Close support: offer a passing option just behind and beside the ball.
         if (cachedRank == 1) {
             Vec3 toOwnGoal = new Vec3(ownGoal.getX() + 0.5D - ballPoint.x, 0.0D,
                     ownGoal.getZ() + 0.5D - ballPoint.z);
@@ -873,26 +955,92 @@ public class NpcPlayGoal extends Goal {
             double side = (npc.getSquadIndex() % 2 == 0) ? 2.0D : -2.0D;
             Vec3 lateral = new Vec3(-toOwnGoal.z * side, 0.0D, toOwnGoal.x * side);
             Vec3 supportSpot = ballPoint.add(toOwnGoal.scale(4.0D)).add(lateral);
-            // Blend conservatively: a support bot that fully tracks the ball
-            // reproduces the forward/back jitter whenever the ball moves.
             return home.lerp(supportSpot, possession ? 0.6D : 0.45D);
         }
 
-        // Shape players: shift upfield while attacking, drop while defending,
-        // and drift only slightly toward the ball so the formation stays
-        // readable instead of the whole squad clumping around the ball.
-        Vec3 shifted = home;
+        // Formation players track the ball side together (compactness) while
+        // keeping their slot, so the whole team visibly moves with the play.
+        double ballSideShift = Mth.clamp(ballPoint.x - (center.getX() + 0.5D), -3.0D, 3.0D) * 0.7D;
+        Vec3 shaped = new Vec3(home.x + ballSideShift, home.y, home.z);
+
         if (possession) {
-            Vec3 push = new Vec3(attackGoal.getX() + 0.5D - home.x, 0.0D,
-                    attackGoal.getZ() + 0.5D - home.z);
-            if (push.lengthSqr() > 1.0E-6D) {
-                shifted = home.add(push.normalize().scale(2.5D));
+            // In possession: hold an advanced shape and make off-ball runs
+            // into space so the passer always has moving options.
+            Vec3 run = updateAttackingRun(level, manager, center, size, shaped, attackGoal);
+            if (run != null) {
+                return run;
             }
+            Vec3 push = new Vec3(attackGoal.getX() + 0.5D - shaped.x, 0.0D,
+                    attackGoal.getZ() + 0.5D - shaped.z);
+            if (push.lengthSqr() > 1.0E-6D) {
+                shaped = shaped.add(push.normalize().scale(2.5D));
+            }
+            return clampToField(center, size, shaped);
         }
-        if (npc.distanceToSqr(ballPoint) <= HOME_DRIFT_DISTANCE_SQR) {
-            return shifted;
+
+        // Out of possession: mark the nearest opponent from a point between
+        // him and our own goal; fall back to a compact defensive shift.
+        LivingEntity mark = nearestOpponentWithin(level, manager, npc.position(), 14.0D);
+        if (mark != null) {
+            Vec3 toOwnGoal = new Vec3(ownGoal.getX() + 0.5D - mark.getX(), 0.0D,
+                    ownGoal.getZ() + 0.5D - mark.getZ());
+            if (toOwnGoal.lengthSqr() > 1.0E-6D) {
+                toOwnGoal = toOwnGoal.normalize();
+            }
+            Vec3 markPoint = mark.position().add(toOwnGoal.scale(2.0D));
+            return clampToField(center, size, shaped.lerp(markPoint, 0.55D));
         }
-        return shifted.lerp(ballPoint, 0.2D);
+        Vec3 drop = new Vec3(ownGoal.getX() + 0.5D - shaped.x, 0.0D,
+                ownGoal.getZ() + 0.5D - shaped.z);
+        if (drop.lengthSqr() > 1.0E-6D) {
+            shaped = shaped.add(drop.normalize().scale(1.5D));
+        }
+        return clampToField(center, size, shaped.lerp(ballPoint, 0.2D));
+    }
+
+    /**
+     * State machine for off-ball attacking runs. While a run is active the
+     * bot sprints to a point ahead of its formation slot; after reaching it
+     * (or timing out) it rests before the next run. The start point must be
+     * open space inside the pitch, which is exactly what through balls target.
+     */
+    private Vec3 updateAttackingRun(ServerLevel level, MatchManager manager, BlockPos center,
+                                    FieldSize size, Vec3 home, BlockPos attackGoal) {
+        if (runTicks > 0 && runPoint != null) {
+            if (npc.distanceToSqr(runPoint.x, npc.getY(), runPoint.z) < 2.5D) {
+                runTicks = 0;
+                runPoint = null;
+                runCooldown = RUN_REST_TICKS + npc.getRandom().nextInt(35);
+                return null;
+            }
+            return runPoint;
+        }
+        if (runCooldown > 0) {
+            return null;
+        }
+        // Re-arm a short wait when the roll fails so we do not randomise every tick.
+        if (level.random.nextFloat() > 0.30F) {
+            runCooldown = 8;
+            return null;
+        }
+        Vec3 goal = Vec3.atBottomCenterOf(attackGoal);
+        Vec3 forward = new Vec3(goal.x - home.x, 0.0D, goal.z - home.z);
+        if (forward.lengthSqr() < 1.0E-6D) {
+            runCooldown = 8;
+            return null;
+        }
+        forward = forward.normalize();
+        double wide = (npc.getSquadIndex() % 2 == 0 ? 1.0D : -1.0D)
+                * (1.5D + npc.getRandom().nextDouble() * 1.5D);
+        Vec3 lateral = new Vec3(-forward.z, 0.0D, forward.x).scale(wide);
+        Vec3 candidate = clampToField(center, size, home.add(forward.scale(4.5D)).add(lateral));
+        if (nearestOpponentWithin(level, manager, candidate, RUN_OPEN_SPACE_RADIUS) != null) {
+            runCooldown = 12;
+            return null;
+        }
+        runPoint = new Vec3(candidate.x, home.y, candidate.z);
+        runTicks = RUN_DURATION_TICKS;
+        return runPoint;
     }
 
     /**
@@ -905,19 +1053,42 @@ public class NpcPlayGoal extends Goal {
             return null;
         }
         Vec3 velocity = ball.getDeltaMovement();
-        if (velocity.horizontalDistanceSqr() < 0.02D) {
-            return null;
-        }
-        Vec3 toBot = npc.position().subtract(ball.position());
         Vec3 flatVelocity = new Vec3(velocity.x, 0.0D, velocity.z);
         double speed = flatVelocity.length();
-        double alignment = flatVelocity.normalize()
-                .dot(new Vec3(toBot.x, 0.0D, toBot.z).normalize());
-        if (alignment < 0.55D || toBot.horizontalDistanceSqr() > 256.0D) {
+        if (speed < 0.05D) {
             return null;
         }
-        double travelTime = Math.min(toBot.horizontalDistance() / speed, 8.0D);
-        return ball.position().add(velocity.scale(travelTime));
+        Vec3 toBot = new Vec3(npc.getX() - ball.getX(), 0.0D, npc.getZ() - ball.getZ());
+        if (toBot.lengthSqr() < 1.0E-6D || toBot.horizontalDistanceSqr() > 400.0D) {
+            return null;
+        }
+        double alignment = flatVelocity.normalize().dot(toBot.normalize());
+        if (alignment < 0.35D) {
+            return null;
+        }
+        // Simulate the ball's horizontal path: a short airborne stretch with
+        // no friction (lobs and lifted passes), then ground rolling with the
+        // soccer friction. The bot runs to the closest approach of that path,
+        // so through balls and lobs are met instead of watched roll past.
+        Vec3 point = ball.position();
+        Vec3 step = flatVelocity;
+        Vec3 best = null;
+        double bestDistanceSqr = Double.MAX_VALUE;
+        for (int tick = 1; tick <= 42; tick++) {
+            if (tick > 6) {
+                step = step.scale(0.82D);
+            }
+            point = point.add(step.x, 0.0D, step.z);
+            double distanceSqr = point.distanceToSqr(npc.getX(), point.y, npc.getZ());
+            if (distanceSqr < bestDistanceSqr) {
+                bestDistanceSqr = distanceSqr;
+                best = point;
+            }
+            if (step.lengthSqr() < 0.002D) {
+                break;
+            }
+        }
+        return bestDistanceSqr <= 7.5D ? best : null;
     }
 
     /**
@@ -964,6 +1135,131 @@ public class NpcPlayGoal extends Goal {
             }
         }
         return best;
+    }
+
+    /**
+     * Through-ball (ara pas) target: open space {@code THROUGH_LEAD} blocks
+     * ahead of a teammate who is already advancing toward the attacked goal.
+     * Returns the lead point the ball should be kicked into, or {@code null}
+     * when no runner has the required space and a clear ground lane.
+     */
+    private Vec3 pickThroughBall(ServerLevel level, MatchManager manager, BlockPos attackGoal) {
+        if (ball == null) {
+            return null;
+        }
+        BlockPos center = manager.getFieldCenter();
+        if (center == null) {
+            return null;
+        }
+        Vec3 goal = Vec3.atBottomCenterOf(attackGoal);
+        Vec3 forward = new Vec3(goal.x - ball.getX(), 0.0D, goal.z - ball.getZ());
+        if (forward.lengthSqr() < 1.0E-6D) {
+            return null;
+        }
+        forward = forward.normalize();
+        AABB searchArea = npc.getBoundingBox().inflate(30.0D);
+        Vec3 best = null;
+        double bestScore = Double.NEGATIVE_INFINITY;
+        for (SoccerNpcEntity runner : level.getEntitiesOfClass(SoccerNpcEntity.class, searchArea)) {
+            if (runner == npc || runner.isReferee() || !runner.isAlive()
+                    || runner.getSportTeam() != npc.getSportTeam() || runner.isKeeper()) {
+                continue;
+            }
+            Vec3 toRunner = new Vec3(runner.getX() - ball.getX(), 0.0D,
+                    runner.getZ() - ball.getZ());
+            double progress = toRunner.dot(forward);
+            if (progress < THROUGH_MIN_PROGRESS) {
+                continue;
+            }
+            Vec3 lead = clampToField(center, manager.getSettings().getFieldSize(),
+                    runner.position().add(forward.scale(THROUGH_LEAD)));
+            double leadProgress = new Vec3(lead.x - ball.getX(), 0.0D,
+                    lead.z - ball.getZ()).dot(forward);
+            // The runner needs actual grass to sprint into.
+            if (leadProgress < progress + 1.5D) {
+                continue;
+            }
+            if (nearestOpponentWithin(level, manager, lead, THROUGH_SPACE_RADIUS) != null) {
+                continue;
+            }
+            if (!laneIsClear(level, manager, ball.position(), lead, PASS_LANE_WIDTH - 0.1D)) {
+                continue;
+            }
+            double score = leadProgress
+                    - 0.15D * npc.distanceToSqr(lead.x, npc.getY(), lead.z);
+            if (score > bestScore) {
+                bestScore = score;
+                best = new Vec3(lead.x, ball.getY(), lead.z);
+            }
+        }
+        return best;
+    }
+
+    /**
+     * Lofted-pass (yüksekten pas) target: an unmarked teammate in the forward
+     * arc whose ground lane is blocked or simply far enough that an aerial
+     * ball beats the defensive line. Returns {@code null} when no safe
+     * overhead option exists.
+     */
+    private SoccerNpcEntity pickLobTarget(ServerLevel level, MatchManager manager,
+                                          BlockPos attackGoal) {
+        if (ball == null) {
+            return null;
+        }
+        Vec3 goal = Vec3.atBottomCenterOf(attackGoal);
+        Vec3 forward = new Vec3(goal.x - ball.getX(), 0.0D, goal.z - ball.getZ());
+        if (forward.lengthSqr() < 1.0E-6D) {
+            return null;
+        }
+        forward = forward.normalize();
+        AABB searchArea = npc.getBoundingBox().inflate(30.0D);
+        SoccerNpcEntity best = null;
+        double bestScore = Double.NEGATIVE_INFINITY;
+        for (SoccerNpcEntity candidate : level.getEntitiesOfClass(SoccerNpcEntity.class, searchArea)) {
+            if (candidate == npc || candidate.isReferee() || !candidate.isAlive()
+                    || candidate.getSportTeam() != npc.getSportTeam() || candidate.isKeeper()) {
+                continue;
+            }
+            double distanceSqr = npc.distanceToSqr(candidate);
+            if (distanceSqr < LOB_MIN_DIST_SQR || distanceSqr > LOB_MAX_DIST_SQR) {
+                continue;
+            }
+            Vec3 toMate = new Vec3(candidate.getX() - ball.getX(), 0.0D,
+                    candidate.getZ() - ball.getZ());
+            if (toMate.dot(forward) < -3.0D) {
+                continue;
+            }
+            // The landing zone has to be free: a tightly marked receiver
+            // would lose the header/second ball immediately.
+            if (nearestOpponentWithin(level, manager, candidate.position(), 2.8D) != null) {
+                continue;
+            }
+            boolean groundBlocked = !laneIsClear(level, manager,
+                    ball.position(), candidate.position(), PASS_LANE_WIDTH);
+            double distance = Math.sqrt(distanceSqr);
+            // Prefer the lob when the ground route is blocked; long switches
+            // of play are also valid aerial balls.
+            if (!groundBlocked && distance < 13.0D) {
+                continue;
+            }
+            double score = toMate.dot(forward) * 1.3D + (groundBlocked ? 5.0D : 0.0D)
+                    - 0.08D * distanceSqr;
+            if (score > bestScore) {
+                bestScore = score;
+                best = candidate;
+            }
+        }
+        return best;
+    }
+
+    /** Clamps a movement/pass point to the playable rectangle of the pitch. */
+    private Vec3 clampToField(BlockPos center, FieldSize size, Vec3 point) {
+        double maxX = Math.max(2.0D, size.getWidth() / 2.0D - 1.5D);
+        double maxZ = Math.max(3.0D, size.getLength() / 2.0D - 2.0D);
+        return new Vec3(
+                Mth.clamp(point.x, center.getX() + 0.5D - maxX, center.getX() + 0.5D + maxX),
+                point.y,
+                Mth.clamp(point.z, center.getZ() + 0.5D - maxZ, center.getZ() + 0.5D + maxZ));
     }
 
     /** True when no opponent stands inside {@code width} of the point-to-point lane. */

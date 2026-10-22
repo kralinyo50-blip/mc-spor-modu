@@ -408,9 +408,15 @@ public class MatchManager extends SavedData {
         Formation formation = team == Team.RED
                 ? settings.getHomeFormation() : settings.getAwayFormation();
         Club club = team == Team.RED ? settings.getHomeClub() : settings.getAwayClub();
+        // A one-slot side has no dedicated keeper: the lone bot must play the
+        // whole pitch, otherwise nobody presses the ball at kick-off. When a
+        // real player already took the keeper slot, bots fill outfield only.
+        boolean humanKeeper = level.getServer().getPlayerList().getPlayers().stream()
+                .anyMatch(p -> getTeam(p.getUUID()) == team && keepers.contains(p.getUUID()));
+        boolean useBotKeeper = settings.getTeamSize() >= 2 && !humanKeeper;
         int spawned = 0;
         for (int i = 0; i < count; i++) {
-            boolean keeper = i == 0;
+            boolean keeper = useBotKeeper && i == 0;
             int number = i + 1;
             Vec3 home = FormationLayout.homePosition(fieldCenter, settings.getFieldSize(),
                     formation, team, i, settings.getTeamSize(), keeper);
@@ -813,6 +819,15 @@ public class MatchManager extends SavedData {
         }
         if (current != null && nearest.getUUID().equals(current)) {
             return current;
+        }
+        // Immediate takeover: a teammate already has the ball at their feet
+        // while the assigned presser is far away. Without this override the
+        // squad waits for the refresh window and leaves a reachable ball
+        // untouched, which looked like bots ignoring the play.
+        if (nearestSqr < 2.25D
+                && (!(level.getEntity(current) instanceof SoccerNpcEntity holder)
+                        || holder.distanceToSqr(ball) > 16.0D)) {
+            return nearest.getUUID();
         }
         // Hysteresis: keep the current presser until a teammate gets clearly
         // closer, which removes the role-swap oscillation around contested balls.
