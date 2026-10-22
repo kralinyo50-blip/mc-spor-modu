@@ -3,22 +3,24 @@ package com.sportcraft.match;
 import com.sportcraft.registry.ModBlocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.server.level.ServerLevel;
 
 import java.util.Set;
 
 /**
- * One-click stadium constructor used by the "Sahayı Kur" button.
+ * One-click, ten-tier stadium constructor used by the "Sahayı Kur" button.
  *
- * <p>The selected {@link BallType} decides the layout: football gets a striped
- * grass pitch with multi-block post-and-net goals, an athletics track and
- * terraced stands; basketball gets an orange hardwood-style court with
- * three-point arcs, painted keys and elevated hoop structures with the same
- * invisible goal sensors powering score detection.</p>
+ * <p>The selected {@link FieldSize} is a full stadium level: low levels are
+ * plain neighbourhood pitches with just the lines and goals, and every level
+ * unlocks more detail (corner flags, advertising boards, running track,
+ * terraced stands on all four sides, floodlights, dugouts, a roof, VIP row,
+ * perimeter wall, entrance tunnel, plaza lamps, banners and a trophy) until
+ * level 10 becomes a complete enclosed arena. Football and basketball share
+ * the decoration pipeline; only the playing surface and goals differ.</p>
  *
  * <p>Only air, replaceable blocks and common natural/building ground blocks
  * are overwritten, so an existing structure next to the stadium is preserved.</p>
@@ -42,9 +44,6 @@ public final class FieldBuilder {
     private static final int GOAL_HEIGHT = 3;
     private static final int GOAL_DEPTH = 2;
     private static final int TRACK_WIDTH = 3;
-    private static final int STAND_ROWS = 4;
-    private static final int STAND_HALF_WIDTH = 8;
-    private static final int FLOODLIGHT_HEIGHT = 12;
 
     private static final int BB_KEY_HALF_WIDTH = 4;
     private static final int BB_KEY_DEPTH = 5;
@@ -54,17 +53,19 @@ public final class FieldBuilder {
     private FieldBuilder() {
     }
 
-    public static FieldBuildResult build(ServerLevel level, BlockPos center, FieldSize size, BallType sport) {
+    public static FieldBuildResult build(ServerLevel level, BlockPos center, FieldSize size,
+                                         BallType sport, Club homeClub, Club awayClub) {
         return sport == BallType.BASKETBALL
-                ? buildBasketballCourt(level, center, size)
-                : buildFootball(level, center, size);
+                ? buildBasketballCourt(level, center, size, homeClub, awayClub)
+                : buildFootball(level, center, size, homeClub, awayClub);
     }
 
     // ------------------------------------------------------------------
     // Football
     // ------------------------------------------------------------------
 
-    private static FieldBuildResult buildFootball(ServerLevel level, BlockPos center, FieldSize size) {
+    private static FieldBuildResult buildFootball(ServerLevel level, BlockPos center, FieldSize size,
+                                                   Club homeClub, Club awayClub) {
         int halfW = size.getWidth() / 2;
         int halfL = size.getLength() / 2;
         int groundY = center.getY() - 1;
@@ -78,15 +79,16 @@ public final class FieldBuilder {
         BlockState post = ModBlocks.GOAL_POST.get().defaultBlockState();
         BlockState net = ModBlocks.GOAL_NET.get().defaultBlockState();
 
-        int margin = TRACK_WIDTH + 2;
-        for (int x = -halfW - margin; x <= halfW + margin; x++) {
-            for (int z = -halfL - margin; z <= halfL + margin; z++) {
+        int outer = outerMargin(size);
+        for (int x = -halfW - outer; x <= halfW + outer; x++) {
+            for (int z = -halfL - outer; z <= halfL + outer; z++) {
                 BlockPos groundPos = new BlockPos(center.getX() + x, groundY, center.getZ() + z);
                 if (canReplaceGround(level.getBlockState(groundPos))) {
                     BlockState ground;
                     if (Math.abs(x) <= halfW && Math.abs(z) <= halfL) {
                         ground = ((x / 2) & 1) == 0 ? turfLight : turfDark;
-                    } else if (Math.abs(x) <= halfW + TRACK_WIDTH && Math.abs(z) <= halfL + TRACK_WIDTH) {
+                    } else if (size.hasFeature(FieldFeatures.TRACK)
+                            && Math.abs(x) <= halfW + TRACK_WIDTH && Math.abs(z) <= halfL + TRACK_WIDTH) {
                         ground = track;
                     } else {
                         continue;
@@ -115,17 +117,7 @@ public final class FieldBuilder {
                 ModBlocks.BLUE_GOAL.get().defaultBlockState()
                         .setValue(BlockStateProperties.HORIZONTAL_FACING, Direction.NORTH));
 
-        placed += buildAdvertisingBoards(level, center, halfW, halfL, playY);
-        placed += buildCornerFlags(level, center, halfW, halfL, playY);
-        placed += buildFloodlights(level, center, halfW, halfL, groundY, playY);
-        placed += buildDugouts(level, center, halfW, halfL, groundY, playY);
-        placed += buildStands(level, center, halfW, halfL, groundY, playY);
-
-        BlockPos scoreboardPos = new BlockPos(center.getX() + halfW + TRACK_WIDTH + 1, playY, center.getZ());
-        if (level.getBlockState(scoreboardPos).canBeReplaced()) {
-            level.setBlock(scoreboardPos, ModBlocks.SCOREBOARD.get().defaultBlockState(), Block.UPDATE_ALL);
-            placed++;
-        }
+        placed += decorate(level, center, size, halfW, halfL, groundY, playY, homeClub, awayClub);
 
         return new FieldBuildResult(center, size, redGoalPos, blueGoalPos, placed);
     }
@@ -143,7 +135,6 @@ public final class FieldBuilder {
         int lineZ = mouth.getZ();
         int backZ = lineZ + zDirection * (GOAL_DEPTH - 1);
 
-        // Two post columns and the crossbar across the mouth.
         for (int y = playY; y < playY + GOAL_HEIGHT; y++) {
             count += placeIfReplaceable(level, new BlockPos(cx - GOAL_HALF_WIDTH, y, lineZ), post);
             count += placeIfReplaceable(level, new BlockPos(cx + GOAL_HALF_WIDTH, y, lineZ), post);
@@ -152,7 +143,6 @@ public final class FieldBuilder {
             count += placeIfReplaceable(level, new BlockPos(x, playY + GOAL_HEIGHT - 1, lineZ), post);
         }
 
-        // Back wall, side walls and roof made of net blocks.
         for (int x = cx - GOAL_HALF_WIDTH; x <= cx + GOAL_HALF_WIDTH; x++) {
             for (int y = playY; y < playY + GOAL_HEIGHT; y++) {
                 count += placeIfReplaceable(level, new BlockPos(x, y, backZ), net);
@@ -167,7 +157,6 @@ public final class FieldBuilder {
             }
         }
 
-        // Invisible ball-detection sensor on the goal line.
         count += placeIfReplaceable(level, mouth, sensor);
         return count;
     }
@@ -176,7 +165,8 @@ public final class FieldBuilder {
     // Basketball
     // ------------------------------------------------------------------
 
-    private static FieldBuildResult buildBasketballCourt(ServerLevel level, BlockPos center, FieldSize size) {
+    private static FieldBuildResult buildBasketballCourt(ServerLevel level, BlockPos center, FieldSize size,
+                                                          Club homeClub, Club awayClub) {
         int halfW = size.getWidth() / 2;
         int halfL = size.getLength() / 2;
         int groundY = center.getY() - 1;
@@ -220,23 +210,7 @@ public final class FieldBuilder {
                         .setValue(BlockStateProperties.HORIZONTAL_FACING, Direction.NORTH));
         placed += 2;
 
-        // Substitute benches flanking the court.
-        for (int baseZ = -6; baseZ <= 6; baseZ += 12) {
-            for (int dz = -2; dz <= 2; dz++) {
-                placed += placeIfReplaceable(level,
-                        new BlockPos(center.getX() + halfW + 2, playY, center.getZ() + baseZ + dz),
-                        ModBlocks.BLUE_SEAT.get().defaultBlockState());
-                placed += placeIfReplaceable(level,
-                        new BlockPos(center.getX() - halfW - 2, playY, center.getZ() + baseZ + dz),
-                        ModBlocks.RED_SEAT.get().defaultBlockState());
-            }
-        }
-
-        BlockPos scoreboardPos = new BlockPos(center.getX() + halfW + margin, playY + 1, center.getZ());
-        if (level.getBlockState(scoreboardPos).canBeReplaced()) {
-            level.setBlock(scoreboardPos, ModBlocks.SCOREBOARD.get().defaultBlockState(), Block.UPDATE_ALL);
-            placed++;
-        }
+        placed += decorate(level, center, size, halfW, halfL, groundY, playY, homeClub, awayClub);
 
         return new FieldBuildResult(center, size, redSensor, blueSensor, placed);
     }
@@ -244,8 +218,6 @@ public final class FieldBuilder {
     /**
      * Elevated hoop: metal pole behind the baseline, white backboard, net rim
      * block and the invisible score sensor one block inside the court.
-     *
-     * @param zDirection -1 north hoop, +1 south hoop.
      */
     private static BlockPos buildHoop(ServerLevel level, BlockPos center, int halfL, int zDirection,
                                       int playY, BlockState post, BlockState net, BlockState board,
@@ -258,13 +230,11 @@ public final class FieldBuilder {
         for (int y = playY; y <= playY + BB_HOOP_HEIGHT + 1; y++) {
             placeIfReplaceable(level, new BlockPos(cx, y, poleZ), post);
         }
-        // 3x2 backboard facing the court at rim height.
         for (int dx = -1; dx <= 1; dx++) {
             for (int dy = 0; dy < 2; dy++) {
                 placeIfReplaceable(level, new BlockPos(cx + dx, playY + BB_HOOP_HEIGHT - 1 + dy, poleZ), board);
             }
         }
-        // Rim net block on the baseline plane and the sensor just inside it.
         placeIfReplaceable(level, new BlockPos(cx, playY + BB_HOOP_HEIGHT, lineZ), net);
         BlockPos sensorPos = new BlockPos(cx, playY + BB_HOOP_HEIGHT, lineZ + inward);
         placeIfReplaceable(level, sensorPos, sensorState);
@@ -282,7 +252,6 @@ public final class FieldBuilder {
         if (isBasketballKey(x, z, halfL, true) || isBasketballKey(x, z, halfL, false)) {
             return true;
         }
-        // Stepped three-point arcs around each baseline basket.
         int arcRadius = halfW - 2;
         for (int sign : new int[]{-1, 1}) {
             double dx = x;
@@ -308,14 +277,70 @@ public final class FieldBuilder {
         if (Math.abs(x) == BB_KEY_HALF_WIDTH || z == innerZ) {
             return true;
         }
-        // Free-throw circle attached to the inner edge of the key.
         double distance = Math.sqrt(x * x + (z - innerZ) * (z - innerZ));
         return Math.abs(distance - 2) < 1.05D;
     }
 
     // ------------------------------------------------------------------
-    // Shared stadium decoration
+    // Level-driven decoration pipeline (shared by football and basketball)
     // ------------------------------------------------------------------
+
+    /** Ground footprint margin reserved for the highest enabled decoration. */
+    private static int outerMargin(FieldSize size) {
+        int margin = 2;
+        if (size.hasFeature(FieldFeatures.TRACK)) {
+            margin = TRACK_WIDTH + 2;
+        }
+        if (size.getStandRows() > 0) {
+            margin = Math.max(margin, TRACK_WIDTH + size.getStandRows() + 3);
+        }
+        if (size.hasPerimeterWall()) {
+            margin += 2;
+        }
+        return margin;
+    }
+
+    private static int decorate(ServerLevel level, BlockPos center, FieldSize size,
+                                int halfW, int halfL, int groundY, int playY,
+                                Club homeClub, Club awayClub) {
+        int count = 0;
+        if (size.hasFeature(FieldFeatures.CORNER_FLAGS)) {
+            count += buildCornerFlags(level, center, halfW, halfL, playY);
+        }
+        if (size.hasFeature(FieldFeatures.AD_BOARDS)) {
+            count += buildAdvertisingBoards(level, center, halfW, halfL, playY);
+        }
+        if (size.getFloodlightTowers() > 0) {
+            count += buildFloodlights(level, center, halfW, halfL, playY, size);
+        }
+        if (size.hasFeature(FieldFeatures.DUGOUTS)) {
+            count += buildDugouts(level, center, halfW, halfL, playY);
+        }
+        if (size.getStandRows() > 0) {
+            count += buildStands(level, center, halfW, halfL, playY, size, homeClub, awayClub);
+        }
+        if (size.hasPerimeterWall()) {
+            count += buildPerimeterWall(level, center, halfW, halfL, groundY, playY, size);
+        }
+        if (size.hasEntranceTunnel()) {
+            count += buildEntranceTunnel(level, center, halfW, halfL, playY, size);
+        }
+        if (size.hasPlazaLamps()) {
+            count += buildPlazaLamps(level, center, halfW, halfL, playY, size);
+        }
+        if (size.hasBanners()) {
+            count += buildBanners(level, center, halfW, halfL, playY, size);
+        }
+        if (size.hasTrophy()) {
+            count += buildTrophy(level, center, halfW, halfL, groundY, playY);
+        }
+        if (size.hasFeature(FieldFeatures.SCOREBOARD)) {
+            int offset = TRACK_WIDTH + size.getStandRows() + 1;
+            BlockPos scoreboardPos = new BlockPos(center.getX() + halfW + offset, playY, center.getZ());
+            count += placeIfReplaceable(level, scoreboardPos, ModBlocks.SCOREBOARD.get().defaultBlockState());
+        }
+        return count;
+    }
 
     private static int buildAdvertisingBoards(ServerLevel level, BlockPos center, int halfW,
                                               int halfL, int playY) {
@@ -353,7 +378,6 @@ public final class FieldBuilder {
             for (int sz = -1; sz <= 1; sz += 2) {
                 int x = center.getX() + sx * halfW;
                 int z = center.getZ() + sz * halfL;
-                // Flags intentionally replace the border-line carpet at the corner.
                 level.setBlock(new BlockPos(x, playY, z), fence, Block.UPDATE_ALL);
                 level.setBlock(new BlockPos(x, playY + 1, z), fence, Block.UPDATE_ALL);
                 count += placeIfReplaceable(level, new BlockPos(x, playY + 2, z), flag);
@@ -364,32 +388,35 @@ public final class FieldBuilder {
     }
 
     private static int buildFloodlights(ServerLevel level, BlockPos center, int halfW,
-                                        int halfL, int groundY, int playY) {
+                                        int halfL, int playY, FieldSize size) {
         int count = 0;
         BlockState pole = Blocks.IRON_BLOCK.defaultBlockState();
-        BlockState lamp = Blocks.SEA_LANTERN.defaultBlockState();
+        BlockState lamp = ModBlocks.STADIUM_LAMP.get().defaultBlockState();
         BlockState cap = Blocks.BLACK_CONCRETE.defaultBlockState();
-        for (int sx = -1; sx <= 1; sx += 2) {
-            for (int sz = -1; sz <= 1; sz += 2) {
-                int x = center.getX() + sx * (halfW + TRACK_WIDTH + 1);
-                int z = center.getZ() + sz * (halfL + TRACK_WIDTH + 1);
-                for (int y = playY; y < playY + FLOODLIGHT_HEIGHT; y++) {
-                    count += placeIfReplaceable(level, new BlockPos(x, y, z), pole);
-                }
-                int topY = playY + FLOODLIGHT_HEIGHT;
-                for (int dx = -1; dx <= 1; dx++) {
-                    for (int dz = -1; dz <= 1; dz++) {
-                        count += placeIfReplaceable(level, new BlockPos(x + dx, topY, z + dz), lamp);
-                    }
-                }
-                count += placeIfReplaceable(level, new BlockPos(x, topY + 1, z), cap);
+        int towers = size.getFloodlightTowers();
+        int ring = halfL + TRACK_WIDTH + size.getStandRows() + 2;
+        for (int i = 0; i < towers; i++) {
+            // Evenly space the towers around the four corners of the footprint.
+            int sx = (i % 2 == 0) ? -1 : 1;
+            int sz = (i < 2) ? -1 : 1;
+            int x = center.getX() + sx * (halfW + TRACK_WIDTH + 1);
+            int z = center.getZ() + sz * ring;
+            for (int y = playY; y < playY + size.getFloodlightHeight(); y++) {
+                count += placeIfReplaceable(level, new BlockPos(x, y, z), pole);
             }
+            int topY = playY + size.getFloodlightHeight();
+            for (int dx = -1; dx <= 1; dx++) {
+                for (int dz = -1; dz <= 1; dz++) {
+                    count += placeIfReplaceable(level, new BlockPos(x + dx, topY, z + dz), lamp);
+                }
+            }
+            count += placeIfReplaceable(level, new BlockPos(x, topY + 1, z), cap);
         }
         return count;
     }
 
     private static int buildDugouts(ServerLevel level, BlockPos center, int halfW,
-                                    int halfL, int groundY, int playY) {
+                                    int halfL, int playY) {
         int count = 0;
         BlockState wall = Blocks.GRAY_CONCRETE.defaultBlockState();
         BlockState roof = Blocks.GLASS.defaultBlockState();
@@ -404,25 +431,174 @@ public final class FieldBuilder {
         return count;
     }
 
+    /**
+     * Terraced stands. Goal-end stands are always built for tiers that have
+     * rows; high tiers also wrap the stands around the sidelines and add a
+     * VIP gold row plus a translucent roof over the back rows.
+     */
     private static int buildStands(ServerLevel level, BlockPos center, int halfW,
-                                   int halfL, int groundY, int playY) {
+                                   int halfL, int playY, FieldSize size,
+                                   Club homeClub, Club awayClub) {
         int count = 0;
         BlockState support = Blocks.STONE.defaultBlockState();
-        BlockState redSeat = ModBlocks.RED_SEAT.get().defaultBlockState();
-        BlockState blueSeat = ModBlocks.BLUE_SEAT.get().defaultBlockState();
+        BlockState homeSeat = ModBlocks.seatFor(homeClub).get().defaultBlockState();
+        BlockState awaySeat = ModBlocks.seatFor(awayClub).get().defaultBlockState();
+        BlockState vipSeat = Blocks.GOLD_BLOCK.defaultBlockState();
+        int rows = size.getStandRows();
+        int ring = TRACK_WIDTH + 1;
+        int halfWidth = Math.min(halfW + 2, 10);
+
+        // Goal-end stands (north home, south away), growing row by row.
         for (int side = -1; side <= 1; side += 2) {
-            BlockState seat = side < 0 ? redSeat : blueSeat;
-            for (int row = 0; row < STAND_ROWS; row++) {
-                int z = center.getZ() + side * (halfL + TRACK_WIDTH + 1 + row);
+            BlockState seat = side < 0 ? homeSeat : awaySeat;
+            for (int row = 0; row < rows; row++) {
+                int z = center.getZ() + side * (halfL + ring + row);
                 int seatY = playY + row;
-                for (int x = center.getX() - STAND_HALF_WIDTH; x <= center.getX() + STAND_HALF_WIDTH; x++) {
+                for (int x = center.getX() - halfWidth; x <= center.getX() + halfWidth; x++) {
                     for (int supportY = playY; supportY < seatY; supportY++) {
                         count += placeIfReplaceable(level, new BlockPos(x, supportY, z), support);
                     }
-                    count += placeIfReplaceable(level, new BlockPos(x, seatY, z), seat);
+                    BlockState rowSeat = size.hasVipRow() && row == rows - 1 ? vipSeat : seat;
+                    count += placeIfReplaceable(level, new BlockPos(x, seatY, z), rowSeat);
                 }
             }
         }
+
+        // Side stands only from the tiers that enclose the pitch on all sides.
+        if (size.isAllSideStands()) {
+            for (int side = -1; side <= 1; side += 2) {
+                BlockState sideSeat = side < 0 ? homeSeat : awaySeat;
+                for (int row = 0; row < rows; row++) {
+                    int x = center.getX() + side * (halfW + ring + row);
+                    int seatY = playY + row;
+                    for (int z = center.getZ() - halfL; z <= center.getZ() + halfL; z++) {
+                        for (int supportY = playY; supportY < seatY; supportY++) {
+                            count += placeIfReplaceable(level, new BlockPos(x, supportY, z), support);
+                        }
+                        BlockState rowSeat = size.hasVipRow() && row == rows - 1 ? vipSeat : sideSeat;
+                        count += placeIfReplaceable(level, new BlockPos(x, seatY, z), rowSeat);
+                    }
+                }
+            }
+        }
+
+        if (size.hasStandRoof()) {
+            BlockState roof = ModBlocks.STADIUM_ROOF.get().defaultBlockState();
+            int roofY = playY + rows + 1;
+            for (int side = -1; side <= 1; side += 2) {
+                int z = center.getZ() + side * (halfL + ring + rows - 1);
+                for (int x = center.getX() - halfWidth; x <= center.getX() + halfWidth; x++) {
+                    count += placeIfReplaceable(level, new BlockPos(x, roofY, z), roof);
+                }
+            }
+        }
+        return count;
+    }
+
+    /** Outer enclosure with a gap left on the sideline for the tunnel. */
+    private static int buildPerimeterWall(ServerLevel level, BlockPos center, int halfW,
+                                          int halfL, int groundY, int playY, FieldSize size) {
+        int count = 0;
+        BlockState wall = ModBlocks.STADIUM_WALL.get().defaultBlockState();
+        int ring = TRACK_WIDTH + size.getStandRows() + 2;
+        int xMin = center.getX() - halfW - ring;
+        int xMax = center.getX() + halfW + ring;
+        int zMin = center.getZ() - halfL - ring;
+        int zMax = center.getZ() + halfL + ring;
+        int height = size.getStandRows() + 2;
+        int tunnelGap = 2;
+        for (int y = playY; y < playY + height; y++) {
+            for (int x = xMin; x <= xMax; x++) {
+                count += placeIfReplaceable(level, new BlockPos(x, y, zMin), wall);
+                count += placeIfReplaceable(level, new BlockPos(x, y, zMax), wall);
+            }
+            for (int z = zMin; z <= zMax; z++) {
+                // Sideline entrance gap at the centre of the +X wall.
+                boolean tunnelMouth = size.hasEntranceTunnel() && Math.abs(z - center.getZ()) <= tunnelGap;
+                if (tunnelMouth && y < playY + 3) {
+                    continue;
+                }
+                count += placeIfReplaceable(level, new BlockPos(xMin, y, z), wall);
+                count += placeIfReplaceable(level, new BlockPos(xMax, y, z), wall);
+            }
+        }
+        return count;
+    }
+
+    /** Two lamp-topped pillars and a roof block framing the entrance gap. */
+    private static int buildEntranceTunnel(ServerLevel level, BlockPos center, int halfW,
+                                           int halfL, int playY, FieldSize size) {
+        int count = 0;
+        BlockState wall = ModBlocks.STADIUM_WALL.get().defaultBlockState();
+        BlockState lamp = ModBlocks.STADIUM_LAMP.get().defaultBlockState();
+        int ring = TRACK_WIDTH + size.getStandRows() + 2;
+        int x = center.getX() + halfW + ring;
+        int height = size.getStandRows() + 2;
+        for (int dz : new int[]{-3, 3}) {
+            int z = center.getZ() + dz;
+            for (int y = playY; y < playY + height; y++) {
+                count += placeIfReplaceable(level, new BlockPos(x, y, z), wall);
+            }
+            count += placeIfReplaceable(level, new BlockPos(x, playY + height, z), lamp);
+        }
+        count += placeIfReplaceable(level, new BlockPos(x, playY + 3, center.getZ()),
+                ModBlocks.STADIUM_ROOF.get().defaultBlockState());
+        return count;
+    }
+
+    /** Short lamp posts lining the approach plaza outside each sideline. */
+    private static int buildPlazaLamps(ServerLevel level, BlockPos center, int halfW,
+                                       int halfL, int playY, FieldSize size) {
+        int count = 0;
+        BlockState pole = Blocks.IRON_BARS.defaultBlockState();
+        BlockState lamp = ModBlocks.STADIUM_LAMP.get().defaultBlockState();
+        int ring = TRACK_WIDTH + size.getStandRows() + 4;
+        for (int side = -1; side <= 1; side += 2) {
+            int x = center.getX() + side * (halfW + ring);
+            for (int dz = -10; dz <= 10; dz += 5) {
+                int z = center.getZ() + dz;
+                for (int y = playY; y < playY + 3; y++) {
+                    count += placeIfReplaceable(level, new BlockPos(x, y, z), pole);
+                }
+                count += placeIfReplaceable(level, new BlockPos(x, playY + 3, z), lamp);
+            }
+        }
+        return count;
+    }
+
+    /** Alternating club-colour wool banners hung above the goal-end stands. */
+    private static int buildBanners(ServerLevel level, BlockPos center, int halfW,
+                                    int halfL, int playY, FieldSize size) {
+        int count = 0;
+        BlockState[] banners = {
+                Blocks.RED_WOOL.defaultBlockState(), Blocks.BLUE_WOOL.defaultBlockState(),
+                Blocks.YELLOW_WOOL.defaultBlockState(), Blocks.LIME_WOOL.defaultBlockState(),
+                Blocks.PURPLE_WOOL.defaultBlockState(), Blocks.ORANGE_WOOL.defaultBlockState()
+        };
+        int ring = TRACK_WIDTH + 1;
+        int bannerY = playY + size.getStandRows() + 1;
+        int halfWidth = Math.min(halfW + 2, 10);
+        for (int side = -1; side <= 1; side += 2) {
+            int z = center.getZ() + side * (halfL + ring);
+            int i = 0;
+            for (int x = center.getX() - halfWidth; x <= center.getX() + halfWidth; x += 2) {
+                BlockState banner = banners[Math.floorMod(i++, banners.length)];
+                count += placeIfReplaceable(level, new BlockPos(x, bannerY, z), banner);
+            }
+        }
+        return count;
+    }
+
+    /** Gold pedestal with the trophy block beside the centre spot. */
+    private static int buildTrophy(ServerLevel level, BlockPos center, int halfW,
+                                   int halfL, int groundY, int playY) {
+        int count = 0;
+        BlockState pedestal = Blocks.QUARTZ_BLOCK.defaultBlockState();
+        int x = center.getX() + 3;
+        int z = center.getZ();
+        count += placeIfReplaceable(level, new BlockPos(x, groundY, z), pedestal);
+        count += placeIfReplaceable(level, new BlockPos(x, playY, z),
+                ModBlocks.TROPHY_BLOCK.get().defaultBlockState());
         return count;
     }
 
