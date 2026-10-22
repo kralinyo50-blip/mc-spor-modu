@@ -18,8 +18,9 @@ import net.minecraftforge.network.simple.SimpleChannel;
  */
 public final class ModNetwork {
 
-    // "3" adds SlideTackleC2S; client and server accept only this exact version.
-    private static final String PROTOCOL_VERSION = "3";
+    // "4" adds the two selectable clubs to MatchSettingsC2S; client and
+    // server accept only this exact version.
+    private static final String PROTOCOL_VERSION = "4";
 
     public static SimpleChannel CHANNEL;
 

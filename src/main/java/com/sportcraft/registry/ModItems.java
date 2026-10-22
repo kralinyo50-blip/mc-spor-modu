@@ -52,6 +52,22 @@ public class ModItems {
             registerBlockItem("blue_seat", ModBlocks.BLUE_SEAT);
     public static final RegistryObject<Item> SCOREBOARD_ITEM =
             registerBlockItem("scoreboard", ModBlocks.SCOREBOARD);
+    public static final RegistryObject<Item> YELLOW_SEAT_ITEM =
+            registerBlockItem("yellow_seat", ModBlocks.YELLOW_SEAT);
+    public static final RegistryObject<Item> GREEN_SEAT_ITEM =
+            registerBlockItem("green_seat", ModBlocks.GREEN_SEAT);
+    public static final RegistryObject<Item> PURPLE_SEAT_ITEM =
+            registerBlockItem("purple_seat", ModBlocks.PURPLE_SEAT);
+    public static final RegistryObject<Item> ORANGE_SEAT_ITEM =
+            registerBlockItem("orange_seat", ModBlocks.ORANGE_SEAT);
+    public static final RegistryObject<Item> STADIUM_WALL_ITEM =
+            registerBlockItem("stadium_wall", ModBlocks.STADIUM_WALL);
+    public static final RegistryObject<Item> STADIUM_ROOF_ITEM =
+            registerBlockItem("stadium_roof", ModBlocks.STADIUM_ROOF);
+    public static final RegistryObject<Item> STADIUM_LAMP_ITEM =
+            registerBlockItem("stadium_lamp", ModBlocks.STADIUM_LAMP);
+    public static final RegistryObject<Item> TROPHY_BLOCK_ITEM =
+            registerBlockItem("trophy_block", ModBlocks.TROPHY_BLOCK);
 
     private static RegistryObject<Item> registerBlockItem(String name, RegistryObject<Block> block) {
         return ITEMS.register(name, () -> new BlockItem(block.get(), new Item.Properties()));

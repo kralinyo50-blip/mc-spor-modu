@@ -129,6 +129,16 @@ public class RefereeGoal extends Goal {
                     .withStyle(ChatFormatting.YELLOW));
         }
 
+        // Full time: three short closing whistles, both arms up and the final
+        // score in chat, then the match manager despawns the whole squad.
+        if (state == MatchState.FINISHED && lastState != MatchState.FINISHED) {
+            whistle(serverLevel);
+            npc.raiseSignal();
+            Component winner = finalScoreLine(manager);
+            broadcast(serverLevel, Component.translatable("message.sportcraft.referee_full_time", winner)
+                    .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
+        }
+
         if (manager.getRedScore() != lastRedScore || manager.getBlueScore() != lastBlueScore) {
             boolean redScored = manager.getRedScore() != lastRedScore;
             lastRedScore = manager.getRedScore();
@@ -228,6 +238,19 @@ public class RefereeGoal extends Goal {
                 npc.getLookControl().setLookAt(spot.x, spot.y + 1.0D, spot.z);
             }
         }
+    }
+
+    /** Final score phrasing for the full-time announcement. */
+    private Component finalScoreLine(MatchManager manager) {
+        int red = manager.getRedScore();
+        int blue = manager.getBlueScore();
+        if (red == blue) {
+            return Component.translatable("message.sportcraft.result_draw", red, blue);
+        }
+        Team winner = red > blue ? Team.RED : Team.BLUE;
+        return Component.translatable("message.sportcraft.result_winner",
+                Component.translatable(winner.translationKey()),
+                Math.max(red, blue), Math.min(red, blue));
     }
 
     private Component cardMessage(byte card) {

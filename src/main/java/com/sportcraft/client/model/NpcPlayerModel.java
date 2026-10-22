@@ -32,6 +32,22 @@ public class NpcPlayerModel extends HumanoidModel<SoccerNpcEntity> {
                           float ageInTicks, float netHeadYaw, float headPitch) {
         super.setupAnim(entity, limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch);
 
+        // Full-time wave takes priority over every gameplay pose: the squad
+        // stands still and waves goodbye before the match manager despawns it.
+        if (entity.isWaving()) {
+            float wave = Mth.sin(ageInTicks * 0.6F) * 0.45F;
+            rightArm.xRot = -2.7F;
+            rightArm.zRot = 0.15F + wave;
+            leftArm.xRot = 0.3F;
+            leftArm.zRot = 0.0F;
+            rightLeg.xRot = 0.0F;
+            leftLeg.xRot = 0.0F;
+            body.xRot = 0.0F;
+            body.yRot = 0.0F;
+            head.xRot = 0.0F;
+            return;
+        }
+
         if (entity.isSliding()) {
             // Reclined slide: torso back, legs extended toward the ball.
             body.xRot = -1.15F;

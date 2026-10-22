@@ -8,6 +8,7 @@ import com.sportcraft.match.Formation;
 import com.sportcraft.match.FormationLayout;
 import com.sportcraft.match.MatchManager;
 import com.sportcraft.match.MatchSettings;
+import com.sportcraft.match.MatchState;
 import com.sportcraft.match.Team;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
@@ -94,7 +95,19 @@ public class NpcPlayGoal extends Goal {
     @Override
     public boolean canUse() {
         // The referee entity runs RefereeGoal instead of the team brain.
-        return !npc.level().isClientSide && !npc.isReferee();
+        if (npc.level().isClientSide || npc.isReferee()) {
+            return false;
+        }
+        // After full time the squad only plays the farewell-wave scene;
+        // chasing the ball during it looked like the match never ended.
+        if (npc.level() instanceof ServerLevel level) {
+            MatchManager manager = MatchManager.get(level);
+            if (manager.getState() == MatchState.FINISHED) {
+                npc.getNavigation().stop();
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override

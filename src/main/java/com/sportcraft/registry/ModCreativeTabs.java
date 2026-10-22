@@ -34,7 +34,16 @@ public class ModCreativeTabs {
                         // Stands and scoreboard.
                         output.accept(ModBlocks.RED_SEAT.get());
                         output.accept(ModBlocks.BLUE_SEAT.get());
+                        output.accept(ModBlocks.YELLOW_SEAT.get());
+                        output.accept(ModBlocks.GREEN_SEAT.get());
+                        output.accept(ModBlocks.PURPLE_SEAT.get());
+                        output.accept(ModBlocks.ORANGE_SEAT.get());
                         output.accept(ModBlocks.SCOREBOARD.get());
+                        // Grand-stadium construction pieces.
+                        output.accept(ModBlocks.STADIUM_WALL.get());
+                        output.accept(ModBlocks.STADIUM_ROOF.get());
+                        output.accept(ModBlocks.STADIUM_LAMP.get());
+                        output.accept(ModBlocks.TROPHY_BLOCK.get());
                     })
                     .build());
 

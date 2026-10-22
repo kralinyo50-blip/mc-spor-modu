@@ -2,6 +2,7 @@ package com.sportcraft.client.screen;
 
 import com.sportcraft.client.ClientMatchData;
 import com.sportcraft.match.BallType;
+import com.sportcraft.match.Club;
 import com.sportcraft.match.DrawRule;
 import com.sportcraft.match.FieldSize;
 import com.sportcraft.match.Formation;
@@ -46,6 +47,8 @@ public class MatchScreen extends Screen {
     private Button drawButton;
     private Button homeFormButton;
     private Button awayFormButton;
+    private Button homeClubButton;
+    private Button awayClubButton;
     private Button startButton;
 
     public MatchScreen() {
@@ -57,7 +60,7 @@ public class MatchScreen extends Screen {
         draft = ClientMatchData.INSTANCE.getSettings().copy();
         int left = width / 2 - COL_WIDTH - GAP / 2;
         int right = width / 2 + GAP / 2;
-        int top = height / 2 - 108;
+        int top = height / 2 - 120;
         int row = 0;
 
         // Row 1: sport and field size.
@@ -95,7 +98,14 @@ public class MatchScreen extends Screen {
                 .bounds(right, top + row * ROW_STEP, COL_WIDTH, ROW_HEIGHT).build());
         row++;
 
-        // Row 6: join home / away.
+        // Row 6: home and away club identity (six fixed-squad clubs).
+        homeClubButton = addRenderableWidget(Button.builder(Component.empty(), b -> cycleHomeClub())
+                .bounds(left, top + row * ROW_STEP, COL_WIDTH, ROW_HEIGHT).build());
+        awayClubButton = addRenderableWidget(Button.builder(Component.empty(), b -> cycleAwayClub())
+                .bounds(right, top + row * ROW_STEP, COL_WIDTH, ROW_HEIGHT).build());
+        row++;
+
+        // Row 7: join home / away.
         addRenderableWidget(Button.builder(
                         Component.translatable("gui.sportcraft.join_red"),
                         b -> ModNetwork.CHANNEL.sendToServer(new JoinTeamC2S(Team.RED, false)))
@@ -106,7 +116,7 @@ public class MatchScreen extends Screen {
                 .bounds(right, top + row * ROW_STEP, COL_WIDTH, ROW_HEIGHT).build());
         row++;
 
-        // Row 7: goalkeeper join buttons.
+        // Row 8: goalkeeper join buttons.
         addRenderableWidget(Button.builder(
                         Component.translatable("gui.sportcraft.keeper_red"),
                         b -> ModNetwork.CHANNEL.sendToServer(new JoinTeamC2S(Team.RED, true)))
@@ -117,7 +127,7 @@ public class MatchScreen extends Screen {
                 .bounds(right, top + row * ROW_STEP, COL_WIDTH, ROW_HEIGHT).build());
         row++;
 
-        // Row 8: leave team and start match.
+        // Row 9: leave team and start match.
         addRenderableWidget(Button.builder(
                         Component.translatable("gui.sportcraft.leave_team"),
                         b -> ModNetwork.CHANNEL.sendToServer(new JoinTeamC2S(Team.SPECTATOR, false)))
@@ -129,7 +139,7 @@ public class MatchScreen extends Screen {
                 .bounds(right, top + row * ROW_STEP, COL_WIDTH, ROW_HEIGHT).build());
         row++;
 
-        // Row 9: lifecycle controls in thirds.
+        // Row 10: lifecycle controls in thirds.
         int third = (COL_WIDTH * 2 + GAP - GAP * 2) / 3;
         int lifecycleTop = top + row * ROW_STEP;
         addRenderableWidget(Button.builder(
@@ -207,6 +217,25 @@ public class MatchScreen extends Screen {
         sendSettings();
     }
 
+    private void cycleHomeClub() {
+        Club next = hasShiftDown() ? draft.getHomeClub().previous() : draft.getHomeClub().next();
+        // A club cannot play itself; skip the away club.
+        if (next == draft.getAwayClub()) {
+            next = hasShiftDown() ? next.previous() : next.next();
+        }
+        draft.setHomeClub(next);
+        sendSettings();
+    }
+
+    private void cycleAwayClub() {
+        Club next = hasShiftDown() ? draft.getAwayClub().previous() : draft.getAwayClub().next();
+        if (next == draft.getHomeClub()) {
+            next = hasShiftDown() ? next.previous() : next.next();
+        }
+        draft.setAwayClub(next);
+        sendSettings();
+    }
+
     private void sendSettings() {
         ModNetwork.CHANNEL.sendToServer(new MatchSettingsC2S(draft));
     }
@@ -240,6 +269,10 @@ public class MatchScreen extends Screen {
         sizeButton.setMessage(option("gui.sportcraft.opt.field_size",
                 Component.translatable("field_size.sportcraft." + size.getTranslationSuffix())
                         .append(" " + size.getWidth() + "x" + size.getLength())));
+        homeClubButton.setMessage(option("gui.sportcraft.opt.home_club",
+                Component.translatable(draft.getHomeClub().translationKey())));
+        awayClubButton.setMessage(option("gui.sportcraft.opt.away_club",
+                Component.translatable(draft.getAwayClub().translationKey())));
         teamSizeButton.setMessage(option("gui.sportcraft.opt.team_size",
                 Component.literal(draft.getTeamSize() + "v" + draft.getTeamSize())));
         difficultyButton.setMessage(option("gui.sportcraft.opt.difficulty",

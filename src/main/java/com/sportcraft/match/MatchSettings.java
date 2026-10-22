@@ -13,13 +13,17 @@ public class MatchSettings {
     public static final int EXTRA_TIME_SECONDS = 120;
 
     private BallType sport = BallType.SOCCER;
-    private FieldSize fieldSize = FieldSize.MEDIUM;
+    private FieldSize fieldSize = FieldSize.LEVEL_3;
     private int teamSize = 5;
     private MatchDifficulty difficulty = MatchDifficulty.NORMAL;
     private int halfMinutes = 3;
     private DrawRule drawRule = DrawRule.END_DRAW;
     private Formation homeFormation = Formation.F_2_1_1;
     private Formation awayFormation = Formation.F_2_1_1;
+    // Club identity dressing each of the two sides; the home/away Team sides
+    // themselves stay fixed, only their name, kit and seat colours change.
+    private Club homeClub = Club.RED;
+    private Club awayClub = Club.BLUE;
 
     public BallType getSport() {
         return sport;
@@ -85,6 +89,22 @@ public class MatchSettings {
         this.awayFormation = awayFormation;
     }
 
+    public Club getHomeClub() {
+        return homeClub;
+    }
+
+    public void setHomeClub(Club homeClub) {
+        this.homeClub = homeClub == null ? Club.RED : homeClub;
+    }
+
+    public Club getAwayClub() {
+        return awayClub;
+    }
+
+    public void setAwayClub(Club awayClub) {
+        this.awayClub = awayClub == null ? Club.BLUE : awayClub;
+    }
+
     public int getHalfLengthSeconds() {
         return halfMinutes * 60;
     }
@@ -99,6 +119,8 @@ public class MatchSettings {
         copy.drawRule = drawRule;
         copy.homeFormation = homeFormation;
         copy.awayFormation = awayFormation;
+        copy.homeClub = homeClub;
+        copy.awayClub = awayClub;
         return copy;
     }
 }

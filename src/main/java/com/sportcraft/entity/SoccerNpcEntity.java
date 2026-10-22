@@ -73,6 +73,12 @@ public class SoccerNpcEntity extends PathfinderMob {
             SynchedEntityData.defineId(SoccerNpcEntity.class, EntityDataSerializers.BYTE);
     private static final EntityDataAccessor<Byte> DATA_KICK_WINDUP =
             SynchedEntityData.defineId(SoccerNpcEntity.class, EntityDataSerializers.BYTE);
+    // Post-match farewell wave before the squad despawns.
+    private static final EntityDataAccessor<Byte> DATA_WAVE =
+            SynchedEntityData.defineId(SoccerNpcEntity.class, EntityDataSerializers.BYTE);
+
+    /** Full-time ceremony: wave for this long, then despawn. */
+    public static final int WAVE_DURATION_TICKS = 70;
 
     public SoccerNpcEntity(EntityType<? extends PathfinderMob> type, Level level) {
         super(type, level);
@@ -94,6 +100,7 @@ public class SoccerNpcEntity extends PathfinderMob {
         this.entityData.define(DATA_CARD_TIMER, (byte) 0);
         this.entityData.define(DATA_WALL, (byte) 0);
         this.entityData.define(DATA_KICK_WINDUP, (byte) 0);
+        this.entityData.define(DATA_WAVE, (byte) 0);
     }
 
     @Override
@@ -134,6 +141,9 @@ public class SoccerNpcEntity extends PathfinderMob {
             }
             if (getKickWindupTicks() > 0) {
                 setKickWindupTicks((byte) (getKickWindupTicks() - 1));
+            }
+            if (getWaveTicks() > 0) {
+                setWaveTicks((byte) (getWaveTicks() - 1));
             }
         }
     }
@@ -328,6 +338,27 @@ public class SoccerNpcEntity extends PathfinderMob {
 
     private void setKickWindupTicks(byte ticks) {
         this.entityData.set(DATA_KICK_WINDUP, ticks);
+    }
+
+    // --------------------------------------------------------------
+    // Full-time farewell wave
+    // --------------------------------------------------------------
+
+    public byte getWaveTicks() {
+        return this.entityData.get(DATA_WAVE);
+    }
+
+    public boolean isWaving() {
+        return getWaveTicks() > 0;
+    }
+
+    /** Full-time ceremony: the squad waves to the crowd before despawning. */
+    public void startWave() {
+        setWaveTicks((byte) WAVE_DURATION_TICKS);
+    }
+
+    private void setWaveTicks(byte ticks) {
+        this.entityData.set(DATA_WAVE, ticks);
     }
 
     @Override

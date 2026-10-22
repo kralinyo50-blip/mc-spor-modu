@@ -80,15 +80,18 @@ public class MatchManager extends SavedData {
     private Vec3 freeKickPos = Vec3.ZERO;
     private int freeKickEndTick;
 
+    // Full-time ceremony. When the clock expires the players wave to the
+    // crowd for a fixed scene and are then removed together; the referee's
+    // closing whistle is driven by RefereeGoal off the state transition.
+    private boolean ceremonyStarted;
+    private int ceremonyTicks;
+
     /** Outcome of a bot population run, used for the operator summary message. */
     public record PopulateResult(int redBots, int blueBots, int redPlayers,
                                  int bluePlayers, boolean referee) {
     }
 
-    private static final String[] HOME_NAMES = {"Selim", "Umut", "Mert", "Emre", "Kaan", "Arda", "Deniz"};
-    private static final String[] AWAY_NAMES = {"Can", "Burak", "Onur", "Yusuf", "Kerem", "Volkan", "Serkan"};
-    private static final int KIT_RED = 0xC02626;
-    private static final int KIT_BLUE = 0x274FC0;
+    // Squad names and outfield kit colours now live on the selected Club.
     private static final int KIT_KEEPER = 0x2E8B46;
     private static final int KIT_REFEREE = 0xF2D024;
     private static final int KIT_DARK = 0x1E1E24;
@@ -122,6 +125,10 @@ public class MatchManager extends SavedData {
         if (freeKickActive && server.getTickCount() >= freeKickEndTick) {
             endFreeKick();
         }
+        if (state == MatchState.FINISHED) {
+            tickCeremony(server);
+            return;
+        }
         if (state != MatchState.RUNNING) {
             return;
         }
@@ -144,7 +151,49 @@ public class MatchManager extends SavedData {
             remainingSeconds = MatchSettings.EXTRA_TIME_SECONDS;
         } else {
             state = MatchState.FINISHED;
+            // Begin the farewell scene: wave first, then the squad despawns.
+            ceremonyStarted = false;
+            ceremonyTicks = SoccerNpcEntity.WAVE_DURATION_TICKS + 35;
+            setDirty();
         }
+    }
+
+    /**
+     * Full-time ceremony. On the first finished tick every outfield bot and
+     * keeper starts its farewell wave while the referee blows the closing
+     * whistle (handled in RefereeGoal); once the scene timer runs out the
+     * whole squad, including the referee, is removed together.
+     */
+    private void tickCeremony(MinecraftServer server) {
+        if (!ceremonyStarted) {
+            ceremonyStarted = true;
+            startFarewellWave(server.overworld());
+        }
+        if (ceremonyTicks > 0) {
+            ceremonyTicks--;
+            if (ceremonyTicks == 0) {
+                clearNpcs(server.overworld());
+            }
+            setDirty();
+        }
+    }
+
+    private void startFarewellWave(ServerLevel level) {
+        if (fieldCenter == null) {
+            return;
+        }
+        AABB searchArea = new AABB(fieldCenter).inflate(96.0D);
+        for (SoccerNpcEntity npc : level.getEntitiesOfClass(SoccerNpcEntity.class, searchArea)) {
+            if (!npc.isReferee()) {
+                npc.getNavigation().stop();
+                npc.startWave();
+            }
+        }
+    }
+
+    /** True while the post-match wave/despawn scene is still playing. */
+    public boolean isCeremonyActive() {
+        return state == MatchState.FINISHED && ceremonyTicks > 0;
     }
 
     public void updateSettings(MatchSettings incoming) {
@@ -160,6 +209,8 @@ public class MatchManager extends SavedData {
         settings.setDrawRule(incoming.getDrawRule());
         settings.setHomeFormation(incoming.getHomeFormation());
         settings.setAwayFormation(incoming.getAwayFormation());
+        settings.setHomeClub(incoming.getHomeClub());
+        settings.setAwayClub(incoming.getAwayClub());
         if (state == MatchState.IDLE) {
             remainingSeconds = settings.getHalfLengthSeconds();
         }
@@ -254,6 +305,8 @@ public class MatchManager extends SavedData {
         remainingSeconds = settings.getHalfLengthSeconds();
         tickCounter = 0;
         extraTimeUsed = false;
+        ceremonyStarted = false;
+        ceremonyTicks = 0;
         endFreeKick();
         foulCounts.clear();
         yellowCardCounts.clear();
@@ -337,7 +390,7 @@ public class MatchManager extends SavedData {
         }
         Formation formation = team == Team.RED
                 ? settings.getHomeFormation() : settings.getAwayFormation();
-        String[] namePool = team == Team.RED ? HOME_NAMES : AWAY_NAMES;
+        Club club = team == Team.RED ? settings.getHomeClub() : settings.getAwayClub();
         int spawned = 0;
         for (int i = 0; i < count; i++) {
             boolean keeper = i == 0;
@@ -354,9 +407,9 @@ public class MatchManager extends SavedData {
             npc.setKeeper(keeper);
             npc.setSquadIndex(i);
             npc.setPersistenceRequired();
-            npc.setCustomName(Component.literal(number + " " + namePool[(number - 1) % namePool.length]));
+            npc.setCustomName(Component.literal(number + " " + club.playerName(i)));
             npc.setCustomNameVisible(true);
-            equipKit(npc, team, keeper);
+            equipKit(npc, club, keeper);
             // addFreshEntity can reject a spawn (overlap, world border); never
             // track a ghost UUID and keep filling the remaining slots.
             if (level.addFreshEntity(npc)) {
@@ -417,8 +470,8 @@ public class MatchManager extends SavedData {
                 position.x + 0.3D, position.y + 1.8D, position.z + 0.3D);
     }
 
-    private void equipKit(SoccerNpcEntity npc, Team team, boolean keeper) {
-        int color = keeper ? KIT_KEEPER : team == Team.RED ? KIT_RED : KIT_BLUE;
+    private void equipKit(SoccerNpcEntity npc, Club club, boolean keeper) {
+        int color = keeper ? KIT_KEEPER : club.getKitColor();
         ItemStack chest = new ItemStack(Items.LEATHER_CHESTPLATE);
         ((DyeableLeatherItem) chest.getItem()).setColor(chest, color);
         ItemStack legs = new ItemStack(Items.LEATHER_LEGGINGS);
@@ -734,6 +787,8 @@ public class MatchManager extends SavedData {
         value.putByte("DrawRule", (byte) settings.getDrawRule().ordinal());
         value.putByte("HomeFormation", (byte) settings.getHomeFormation().ordinal());
         value.putByte("AwayFormation", (byte) settings.getAwayFormation().ordinal());
+        value.putByte("HomeClub", (byte) settings.getHomeClub().ordinal());
+        value.putByte("AwayClub", (byte) settings.getAwayClub().ordinal());
         return value;
     }
 
@@ -773,6 +828,13 @@ public class MatchManager extends SavedData {
         target.setDrawRule(DrawRule.byOrdinal(value.getByte("DrawRule")));
         target.setHomeFormation(Formation.byOrdinal(value.getByte("HomeFormation")));
         target.setAwayFormation(Formation.byOrdinal(value.getByte("AwayFormation")));
+        // Older saves predate club selection; fall back to the classic red/blue.
+        if (value.contains("HomeClub")) {
+            target.setHomeClub(Club.byOrdinal(value.getByte("HomeClub")));
+        }
+        if (value.contains("AwayClub")) {
+            target.setAwayClub(Club.byOrdinal(value.getByte("AwayClub")));
+        }
     }
 
     private static <E extends Enum<E>> E parseEnum(String name, Class<E> type, E fallback) {
