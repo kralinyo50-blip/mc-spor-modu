@@ -151,7 +151,9 @@ public class SoccerNpcEntity extends PathfinderMob {
     public static AttributeSupplier.Builder createAttributes() {
         return PathfinderMob.createMobAttributes()
                 .add(Attributes.MAX_HEALTH, 20.0D)
-                .add(Attributes.MOVEMENT_SPEED, 0.32D)
+                // Athletic, arcade-ish pace: reference play style keeps the
+                // whole squad in constant motion with quick counter-runs.
+                .add(Attributes.MOVEMENT_SPEED, 0.36D)
                 .add(Attributes.FOLLOW_RANGE, 64.0D)
                 .add(Attributes.KNOCKBACK_RESISTANCE, 1.0D);
     }

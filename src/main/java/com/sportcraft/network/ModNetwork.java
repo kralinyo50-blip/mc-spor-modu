@@ -6,6 +6,7 @@ import com.sportcraft.network.network_packet.JoinTeamC2S;
 import com.sportcraft.network.network_packet.MatchControlC2S;
 import com.sportcraft.network.network_packet.MatchSettingsC2S;
 import com.sportcraft.network.network_packet.MatchStateS2C;
+import com.sportcraft.network.network_packet.RequestPassC2S;
 import com.sportcraft.network.network_packet.SlideTackleC2S;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.fml.common.Mod;
@@ -18,9 +19,9 @@ import net.minecraftforge.network.simple.SimpleChannel;
  */
 public final class ModNetwork {
 
-    // "4" adds the two selectable clubs to MatchSettingsC2S; client and
-    // server accept only this exact version.
-    private static final String PROTOCOL_VERSION = "4";
+    // "5" adds the RequestPassC2S call-for-ball packet; client and server
+    // accept only this exact version.
+    private static final String PROTOCOL_VERSION = "5";
 
     public static SimpleChannel CHANNEL;
 
@@ -66,6 +67,11 @@ public final class ModNetwork {
                     .encoder(SlideTackleC2S::encode)
                     .decoder(SlideTackleC2S::new)
                     .consumerMainThread(SlideTackleC2S::handle)
+                    .add();
+            CHANNEL.messageBuilder(RequestPassC2S.class, id++)
+                    .encoder(RequestPassC2S::encode)
+                    .decoder(RequestPassC2S::new)
+                    .consumerMainThread(RequestPassC2S::handle)
                     .add();
         });
     }

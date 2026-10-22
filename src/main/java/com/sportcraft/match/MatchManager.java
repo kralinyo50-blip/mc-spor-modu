@@ -71,6 +71,11 @@ public class MatchManager extends SavedData {
     // Real-player slide tackles: cooldown gate plus the active contact window.
     private final Map<UUID, Integer> playerSlideCooldownUntil = new HashMap<>();
     private final Map<UUID, Integer> playerSlideActiveUntil = new HashMap<>();
+    // Call-for-ball requests (R key): player UUID -> server tick at which the
+    // request expires. The on-ball bot consumes one when it plays the pass.
+    private final Map<UUID, Integer> passRequestUntil = new HashMap<>();
+    private static final int PASS_REQUEST_DURATION_TICKS = 45;
+    private static final int PASS_REQUEST_REARM_TICKS = 12;
 
     // Free-kick phase. While active the teams freeze into set-piece roles
     // (wall, taker, support) instead of chasing; the phase ends on the kick
@@ -237,6 +242,7 @@ public class MatchManager extends SavedData {
         // cause of the "one bot missing in 1v1" report).
         teams.clear();
         keepers.clear();
+        passRequestUntil.clear();
         redChaser = null;
         blueChaser = null;
         setDirty();
@@ -322,6 +328,7 @@ public class MatchManager extends SavedData {
         ceremonyTicks = 0;
         redChaser = null;
         blueChaser = null;
+        passRequestUntil.clear();
         endFreeKick();
         foulCounts.clear();
         yellowCardCounts.clear();
@@ -838,6 +845,49 @@ public class MatchManager extends SavedData {
             }
         }
         return nearest.getUUID();
+    }
+
+    // ------------------------------------------------------------------
+    // Call-for-ball (pass request)
+    // ------------------------------------------------------------------
+
+    /** Records a real player's call-for-ball for a short window. */
+    public void requestPass(ServerPlayer player) {
+        if (getTeam(player.getUUID()) == Team.SPECTATOR) {
+            return;
+        }
+        passRequestUntil.put(player.getUUID(),
+                player.server.getTickCount() + PASS_REQUEST_DURATION_TICKS);
+        player.displayClientMessage(
+                Component.translatable("message.sportcraft.pass_requested"), true);
+    }
+
+    /**
+     * Returns and consumes the oldest active requester on {@code team}, or
+     * null. Expired entries are pruned during the same sweep.
+     */
+    public ServerPlayer takePassRequest(ServerLevel level, Team team) {
+        int now = level.getServer().getTickCount();
+        var iterator = passRequestUntil.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<UUID, Integer> entry = iterator.next();
+            if (entry.getValue() < now) {
+                iterator.remove();
+                continue;
+            }
+            ServerPlayer player = level.getServer().getPlayerList().getPlayer(entry.getKey());
+            if (player != null && player.isAlive() && getTeam(player.getUUID()) == team) {
+                iterator.remove();
+                return player;
+            }
+        }
+        return null;
+    }
+
+    /** Keeps a request alive for a few more ticks when the first lane was blocked. */
+    public void rearmPassRequest(ServerPlayer player) {
+        passRequestUntil.put(player.getUUID(),
+                player.server.getTickCount() + PASS_REQUEST_REARM_TICKS);
     }
 
     public int getLastFoulTick() {

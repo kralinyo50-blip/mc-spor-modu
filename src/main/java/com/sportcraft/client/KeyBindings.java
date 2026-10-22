@@ -24,6 +24,13 @@ public final class KeyBindings {
             GLFW.GLFW_KEY_C,
             CATEGORY);
 
+    public static final KeyMapping REQUEST_PASS = new KeyMapping(
+            "key." + SportCraft.MOD_ID + ".pass_request",
+            KeyConflictContext.IN_GAME,
+            InputConstants.Type.KEYSYM,
+            GLFW.GLFW_KEY_R,
+            CATEGORY);
+
     private KeyBindings() {
     }
 }
