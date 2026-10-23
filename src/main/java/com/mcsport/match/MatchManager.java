@@ -27,6 +27,7 @@ import net.minecraftforge.network.PacketDistributor;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -57,6 +58,9 @@ public class MatchManager extends SavedData {
     private boolean extraTimeUsed;
     private int tickCounter;
     private final Set<UUID> npcIds = new HashSet<>();
+    // Preferred UI language ("tr"/"en"), learned from the connected players'
+    // client locales and used to localise generated bot squad names.
+    private String language = "tr";
 
     // Referee decision inputs. Fouls are reported by tackle logic and consumed
     // by RefereeGoal; the tick stamp makes the stream strictly de-duplicable.
@@ -295,6 +299,22 @@ public class MatchManager extends SavedData {
         if (!fieldBuilt) {
             return;
         }
+        // Starting from IDLE/FINISHED begins a fresh match, so the previous
+        // game's score, cards and fouls must not leak into the new one. A
+        // start pressed while paused keeps the running match untouched.
+        boolean freshMatch = state != MatchState.RUNNING && state != MatchState.PAUSED;
+        if (freshMatch) {
+            redScore = 0;
+            blueScore = 0;
+            foulCounts.clear();
+            yellowCardCounts.clear();
+            passRequestUntil.clear();
+            redChaser = null;
+            blueChaser = null;
+            endFreeKick();
+            ceremonyStarted = false;
+            ceremonyTicks = 0;
+        }
         int configured = seconds > 0 ? seconds : settings.getHalfLengthSeconds();
         remainingSeconds = Math.max(MIN_DURATION, Math.min(MAX_DURATION, configured));
         tickCounter = 0;
@@ -437,7 +457,8 @@ public class MatchManager extends SavedData {
             npc.setKeeper(keeper);
             npc.setSquadIndex(i);
             npc.setPersistenceRequired();
-            npc.setCustomName(Component.literal(number + " " + club.playerName(i)));
+            npc.setCustomName(Component.literal(number + " "
+                    + club.playerName(i, isEnglishLocale())));
             npc.setCustomNameVisible(true);
             equipKit(npc, club, keeper);
             // addFreshEntity can reject a spawn (overlap, world border); never
@@ -464,7 +485,9 @@ public class MatchManager extends SavedData {
         npc.moveTo(safe.x, safe.y, safe.z, 0.0F, 0.0F);
         npc.setReferee(true);
         npc.setPersistenceRequired();
-        npc.setCustomName(Component.literal("Hakem"));
+        // Translatable so every client renders the referee name in its own
+        // language regardless of the server-side squad locale.
+        npc.setCustomName(Component.translatable("entity.mcsport.referee"));
         npc.setCustomNameVisible(true);
         equipRefereeKit(npc);
         if (!level.addFreshEntity(npc)) {
@@ -687,7 +710,9 @@ public class MatchManager extends SavedData {
      * cooldown is active so the client packet gets no effect.
      */
     public boolean tryPlayerSlide(ServerLevel level, ServerPlayer player) {
-        if (fieldCenter == null) {
+        // Slides are a match action only: outside a running match the C key
+        // must not shove the player around or trigger foul logic.
+        if (fieldCenter == null || state != MatchState.RUNNING) {
             return false;
         }
         int now = player.server.getTickCount();
@@ -848,6 +873,35 @@ public class MatchManager extends SavedData {
     }
 
     // ------------------------------------------------------------------
+    // Locale handling for generated squad names
+    // ------------------------------------------------------------------
+
+    public String getLanguage() {
+        return language;
+    }
+
+    public boolean isEnglishLocale() {
+        return "en".equals(language);
+    }
+
+    /**
+     * Learns the sender's client language. The vanilla server stores the
+     * synced client locale on the connection; anything starting with "tr"
+     * picks Turkish, everything else English.
+     */
+    public void noteLanguage(ServerPlayer player) {
+        if (player == null || player.connection == null) {
+            return;
+        }
+        String locale = player.connection.language;
+        if (locale == null || locale.isBlank()) {
+            return;
+        }
+        language = locale.toLowerCase(Locale.ROOT).startsWith("tr") ? "tr" : "en";
+        setDirty();
+    }
+
+    // ------------------------------------------------------------------
     // Call-for-ball (pass request)
     // ------------------------------------------------------------------
 
@@ -928,6 +982,7 @@ public class MatchManager extends SavedData {
     @Override
     public CompoundTag save(CompoundTag tag) {
         tag.putString("State", state.name());
+        tag.putString("Language", language);
         tag.putInt("RedScore", redScore);
         tag.putInt("BlueScore", blueScore);
         tag.putInt("Remaining", remainingSeconds);
@@ -967,6 +1022,10 @@ public class MatchManager extends SavedData {
     private static MatchManager load(CompoundTag tag) {
         MatchManager manager = new MatchManager();
         manager.state = parseEnum(tag.getString("State"), MatchState.class, MatchState.IDLE);
+        if (tag.contains("Language")) {
+            String saved = tag.getString("Language");
+            manager.language = "en".equals(saved) ? "en" : "tr";
+        }
         manager.redScore = tag.getInt("RedScore");
         manager.blueScore = tag.getInt("BlueScore");
         manager.remainingSeconds = tag.contains("Remaining")
