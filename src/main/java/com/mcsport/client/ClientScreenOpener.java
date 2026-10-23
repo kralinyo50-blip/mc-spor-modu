@@ -14,6 +14,9 @@ public final class ClientScreenOpener {
     }
 
     public static void openMatchScreen() {
+        // Re-announce the locale so a language changed after login still
+        // names the next match's bots correctly.
+        ClientLanguageSync.sendNow();
         Minecraft.getInstance().setScreen(new MatchScreen());
     }
 

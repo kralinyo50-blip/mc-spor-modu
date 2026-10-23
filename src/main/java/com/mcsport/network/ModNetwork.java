@@ -3,6 +3,7 @@ package com.mcsport.network;
 import com.mcsport.McSport;
 import com.mcsport.network.network_packet.BuildFieldC2S;
 import com.mcsport.network.network_packet.JoinTeamC2S;
+import com.mcsport.network.network_packet.LanguageC2S;
 import com.mcsport.network.network_packet.MatchControlC2S;
 import com.mcsport.network.network_packet.MatchSettingsC2S;
 import com.mcsport.network.network_packet.MatchStateS2C;
@@ -19,9 +20,9 @@ import net.minecraftforge.network.simple.SimpleChannel;
  */
 public final class ModNetwork {
 
-    // "5" adds the RequestPassC2S call-for-ball packet; client and server
-    // accept only this exact version.
-    private static final String PROTOCOL_VERSION = "5";
+    // "6" adds the LanguageC2S client-locale sync; client and server accept
+    // only this exact version.
+    private static final String PROTOCOL_VERSION = "6";
 
     public static SimpleChannel CHANNEL;
 
@@ -72,6 +73,11 @@ public final class ModNetwork {
                     .encoder(RequestPassC2S::encode)
                     .decoder(RequestPassC2S::new)
                     .consumerMainThread(RequestPassC2S::handle)
+                    .add();
+            CHANNEL.messageBuilder(LanguageC2S.class, id++)
+                    .encoder(LanguageC2S::encode)
+                    .decoder(LanguageC2S::new)
+                    .consumerMainThread(LanguageC2S::handle)
                     .add();
         });
     }

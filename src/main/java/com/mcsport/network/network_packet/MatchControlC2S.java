@@ -50,7 +50,6 @@ public class MatchControlC2S {
             }
             ServerLevel level = (ServerLevel) player.level();
             MatchManager manager = MatchManager.get(level);
-            manager.noteLanguage(player);
             switch (action) {
                 case ACTION_START -> {
                     manager.start(durationSeconds > 0

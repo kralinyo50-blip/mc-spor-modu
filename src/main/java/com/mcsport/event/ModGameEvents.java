@@ -74,9 +74,7 @@ public class ModGameEvents {
     @SubscribeEvent
     public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
-            MatchManager manager = MatchManager.get((ServerLevel) player.level());
-            manager.noteLanguage(player);
-            manager.syncToPlayer(player);
+            MatchManager.get((ServerLevel) player.level()).syncToPlayer(player);
         }
     }
 

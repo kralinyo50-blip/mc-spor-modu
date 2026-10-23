@@ -34,6 +34,9 @@ public class ClientSetup {
     public static void registerKeyMappings(RegisterKeyMappingsEvent event) {
         event.register(KeyBindings.OPEN_MATCH_MENU);
         event.register(KeyBindings.SLIDE_TACKLE);
+        // Without this registration the R mapping never reaches the controls
+        // menu and consumeClick() can never fire, killing the pass request.
+        event.register(KeyBindings.REQUEST_PASS);
     }
 
     @SubscribeEvent
