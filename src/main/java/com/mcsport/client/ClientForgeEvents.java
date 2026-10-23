@@ -27,6 +27,7 @@ public class ClientForgeEvents {
         Minecraft minecraft = Minecraft.getInstance();
         while (KeyBindings.OPEN_MATCH_MENU.consumeClick()) {
             if (minecraft.screen == null && minecraft.player != null) {
+                ClientLanguageSync.sendNow();
                 minecraft.setScreen(new MatchScreen());
             }
         }

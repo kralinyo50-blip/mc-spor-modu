@@ -885,15 +885,13 @@ public class MatchManager extends SavedData {
     }
 
     /**
-     * Learns the sender's client language. The vanilla server stores the
-     * synced client locale on the connection; anything starting with "tr"
-     * picks Turkish, everything else English.
+     * Records the preferred UI language from a client-synced locale code
+     * ("tr_tr", "en_us", ...). Anything starting with "tr" picks Turkish,
+     * every other non-blank code picks English. The code arrives over the
+     * mod channel because the vanilla listener locale field is private in
+     * the 1.20.1 Mojang mappings.
      */
-    public void noteLanguage(ServerPlayer player) {
-        if (player == null || player.connection == null) {
-            return;
-        }
-        String locale = player.connection.language;
+    public void noteLanguage(String locale) {
         if (locale == null || locale.isBlank()) {
             return;
         }

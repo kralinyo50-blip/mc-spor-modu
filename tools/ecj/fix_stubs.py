@@ -395,6 +395,7 @@ CURATED_METHODS = {
         "net.minecraft.network.chat.MutableComponent withStyle(java.lang.Object a0, java.lang.Object a1)"],
     "Vec3": ["float dot(net.minecraft.world.phys.Vec3 a0)"],
     "CommandSourceStack": ["void sendSuccess(java.util.function.Supplier a0, boolean a1)"],
+    "OptionInstance": ["java.lang.String get()"],
     "FMLCommonSetupEvent": ["void enqueueWork(java.lang.Runnable a0)"],
     "FMLClientSetupEvent": ["void enqueueWork(java.lang.Runnable a0)"],
     "Goal": ["void setFlags(java.util.EnumSet a0)"],
@@ -552,7 +553,10 @@ CURATED_FIELDS = {
     "Entity": [("net.minecraft.util.RandomSource", "random")],
     "Minecraft": [("net.minecraft.client.gui.Font", "font"),
                   ("net.minecraft.client.Options", "options")],
-    "Options": [("boolean", "hideGui")],
+    # languageCode is the public 1.20.1 OptionInstance<String> holding the
+    # selected locale code (e.g. "tr_tr"); read by ClientLanguageSync.
+    "Options": [("boolean", "hideGui"),
+                ("net.minecraft.client.OptionInstance", "languageCode")],
     "AABB": [("double", "minX"), ("double", "minY"), ("double", "minZ"),
              ("double", "maxX"), ("double", "maxY"), ("double", "maxZ")],
     "Level": [("boolean", "isClientSide")],
@@ -561,11 +565,6 @@ CURATED_FIELDS = {
     "Screen": [("net.minecraft.client.gui.Font", "font"),
                ("net.minecraft.network.chat.Component", "title")],
     "Button": [("boolean", "active")],
-    # Real 1.20.1 API: ServerPlayer.connection is the game listener, and
-    # ServerCommonPacketListenerImpl exposes the synced client locale string.
-    "ServerPlayer": [("net.minecraft.server.network.ServerGamePacketListenerImpl",
-                      "connection")],
-    "ServerGamePacketListenerImpl": [("java.lang.String", "language")],
     "HumanoidModel": [("net.minecraft.client.model.geom.ModelPart", "rightArm"),
                       ("net.minecraft.client.model.geom.ModelPart", "leftArm"),
                       ("net.minecraft.client.model.geom.ModelPart", "rightLeg"),

@@ -57,7 +57,6 @@ public class McSportCommand {
         }
         ServerPlayer player = source.getPlayerOrException();
         MatchManager manager = MatchManager.get((ServerLevel) player.level());
-        manager.noteLanguage(player);
         manager.setTeam(player.getUUID(), team);
         // Command joins never carry the keeper flag from the match GUI.
         manager.setKeeper(player.getUUID(), false);

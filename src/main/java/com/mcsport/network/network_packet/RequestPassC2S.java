@@ -35,9 +35,7 @@ public class RequestPassC2S {
                 return;
             }
             ServerLevel level = (ServerLevel) player.level();
-            MatchManager manager = MatchManager.get(level);
-            manager.noteLanguage(player);
-            manager.requestPass(player);
+            MatchManager.get(level).requestPass(player);
         });
         context.setPacketHandled(true);
     }

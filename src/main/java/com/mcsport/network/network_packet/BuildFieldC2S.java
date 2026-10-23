@@ -45,7 +45,6 @@ public class BuildFieldC2S {
             ServerLevel level = (ServerLevel) player.level();
             BlockPos center = player.blockPosition();
             MatchManager manager = MatchManager.get(level);
-            manager.noteLanguage(player);
             BallType sport = manager.getSettings().getSport();
             FieldBuilder.FieldBuildResult result = FieldBuilder.build(level, center, size, sport,
                     manager.getSettings().getHomeClub(), manager.getSettings().getAwayClub());
