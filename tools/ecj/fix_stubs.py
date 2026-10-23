@@ -395,7 +395,6 @@ CURATED_METHODS = {
         "net.minecraft.network.chat.MutableComponent withStyle(java.lang.Object a0, java.lang.Object a1)"],
     "Vec3": ["float dot(net.minecraft.world.phys.Vec3 a0)"],
     "CommandSourceStack": ["void sendSuccess(java.util.function.Supplier a0, boolean a1)"],
-    "OptionInstance": ["java.lang.String get()"],
     "FMLCommonSetupEvent": ["void enqueueWork(java.lang.Runnable a0)"],
     "FMLClientSetupEvent": ["void enqueueWork(java.lang.Runnable a0)"],
     "Goal": ["void setFlags(java.util.EnumSet a0)"],
@@ -553,10 +552,10 @@ CURATED_FIELDS = {
     "Entity": [("net.minecraft.util.RandomSource", "random")],
     "Minecraft": [("net.minecraft.client.gui.Font", "font"),
                   ("net.minecraft.client.Options", "options")],
-    # languageCode is the public 1.20.1 OptionInstance<String> holding the
-    # selected locale code (e.g. "tr_tr"); read by ClientLanguageSync.
+    # languageCode is the plain public String field on 1.20.1 Options that
+    # holds the selected locale code (e.g. "tr_tr"); read by ClientLanguageSync.
     "Options": [("boolean", "hideGui"),
-                ("net.minecraft.client.OptionInstance", "languageCode")],
+                ("java.lang.String", "languageCode")],
     "AABB": [("double", "minX"), ("double", "minY"), ("double", "minZ"),
              ("double", "maxX"), ("double", "maxY"), ("double", "maxZ")],
     "Level": [("boolean", "isClientSide")],

@@ -29,7 +29,9 @@ public final class ClientLanguageSync {
                 || ModNetwork.CHANNEL == null) {
             return;
         }
-        String code = minecraft.options.languageCode.get();
+        // 1.20.1 Mojmap: Options.languageCode is a plain public String field
+        // (the OptionInstance wrapper only arrived in later versions).
+        String code = minecraft.options.languageCode;
         if (code != null && !code.isBlank()) {
             ModNetwork.CHANNEL.sendToServer(new LanguageC2S(code));
         }
