@@ -1,6 +1,5 @@
 {
   "itemGroup.mcsport.mcsport_tab": "MC Spor",
-
   "block.mcsport.artificial_turf": "Suni Çim",
   "block.mcsport.artificial_turf_dark": "Koyu Suni Çim",
   "block.mcsport.field_line": "Saha Çizgisi",
@@ -19,41 +18,33 @@
   "block.mcsport.stadium_roof": "Stadyum Çatısı",
   "block.mcsport.stadium_lamp": "Stadyum Lambası",
   "block.mcsport.trophy_block": "Şampiyonluk Kupası",
-
   "item.mcsport.soccer_ball": "Futbol Topu",
   "item.mcsport.basketball": "Basketbol Topu",
   "item.mcsport.whistle": "Hakem Düdüğü",
   "item.mcsport.yellow_card": "Sarı Kart",
   "item.mcsport.red_card": "Kırmızı Kart",
-
   "entity.mcsport.soccer_ball": "Spor Topu",
   "entity.mcsport.soccer_npc": "AI Futbolcu",
   "entity.mcsport.seat": "Oturma Yeri",
-
   "key.categories.mcsport": "mcsport",
   "key.mcsport.match_menu": "Maç Menüsünü Aç",
   "key.mcsport.slide_tackle": "Kayarak Müdahale",
   "key.mcsport.pass_request": "Pas İste",
-
   "team.mcsport.red": "Ev Sahibi",
   "team.mcsport.blue": "Deplasman",
   "team.mcsport.spectator": "İzleyici",
-
   "club.mcsport.red": "Kırmızı Şahinler",
   "club.mcsport.blue": "Mavi Dalga",
   "club.mcsport.yellow": "Sarı Yıldızlar",
   "club.mcsport.green": "Yeşil Orman",
   "club.mcsport.purple": "Mor Şimşekler",
   "club.mcsport.orange": "Turuncu Ateş",
-
   "match_state.mcsport.idle": "Bekliyor",
   "match_state.mcsport.running": "Devam Ediyor",
   "match_state.mcsport.paused": "Duraklatıldı",
   "match_state.mcsport.finished": "Bitti",
-
   "sport.mcsport.soccer": "Futbol",
   "sport.mcsport.basketball": "Basketbol",
-
   "field_size.mcsport.lv1": "Seviye 1 (Mahalle Sahası)",
   "field_size.mcsport.lv2": "Seviye 2",
   "field_size.mcsport.lv3": "Seviye 3 (Küçük Saha)",
@@ -64,14 +55,11 @@
   "field_size.mcsport.lv8": "Seviye 8",
   "field_size.mcsport.lv9": "Seviye 9",
   "field_size.mcsport.lv10": "Seviye 10 (Büyük Stadyum)",
-
   "difficulty.mcsport.easy": "Kolay",
   "difficulty.mcsport.normal": "Normal",
   "difficulty.mcsport.hard": "Zor",
-
   "draw_rule.mcsport.end_draw": "Beraberlik bitsin",
   "draw_rule.mcsport.extra_time": "Uzatma oynansın",
-
   "gui.mcsport.match_title": "MC Spor Kurulum",
   "gui.mcsport.opt.sport": "Spor",
   "gui.mcsport.opt.field_size": "Saha",
@@ -102,9 +90,7 @@
   "gui.mcsport.keeper_tag": "Kaleci",
   "gui.mcsport.shift_hint": "Shift + tık: ayarı geri al",
   "gui.mcsport.locked_hint": "Maç sürerken kurulum ayarları kilitli — önce duraklat ya da sıfırla",
-
   "hud.mcsport.charge": "Atış Gücü",
-
   "message.mcsport.field_built": "Saha kuruldu (%2$s): %1$s blok yerleştirildi",
   "message.mcsport.scoreboard_line": "%1$s  %2$s : %3$s  %4$s",
   "message.mcsport.scoreboard_not_running": "Şu anda aktif maç yok",
@@ -123,7 +109,6 @@
   "message.mcsport.referee_full_time": "Hakem: MAÇ BİTTİ! %1$s — Oyuncular taraftarı selamlıyor.",
   "message.mcsport.result_winner": "%1$s kazandı %2$d - %3$d",
   "message.mcsport.result_draw": "Berabere bitti %1$d - %2$d",
-
   "command.mcsport.joined": "%s takımına katıldın",
   "command.mcsport.unknown_team": "Bilinmeyen takım: %s (red, blue veya spectator kullan)",
   "command.mcsport.started": "Maç başladı",
@@ -131,9 +116,27 @@
   "command.mcsport.resumed": "Maç devam ediyor",
   "command.mcsport.reset": "Maç sıfırlandı",
   "command.mcsport.no_field": "Önce maç menüsünden bir saha kur",
-
   "subtitles.mcsport.kick": "Topa vuruldu",
   "subtitles.mcsport.bounce": "Top sekiyor",
   "subtitles.mcsport.goal_horn": "Gol kornası",
-  "subtitles.mcsport.whistle": "Düdük çalıyor"
+  "subtitles.mcsport.whistle": "Düdük çalıyor",
+  "item.mcsport.guide_book": "Öğretici Kitap",
+  "entity.mcsport.referee": "Hakem",
+  "gui.mcsport.minutes_value": "%s dk",
+  "guide.mcsport.title": "MC Spor Rehberi",
+  "guide.mcsport.previous": "Önceki",
+  "guide.mcsport.next": "Sonraki",
+  "guide.mcsport.close": "Kapat",
+  "guide.mcsport.p1.title": "Hoş geldin!",
+  "guide.mcsport.p1.body": "MC Spor, Minecraft içinde tam bir futbol\nmaçı yaşamanı sağlar: hazır sahalar,\nakıllı bot oyuncular, hakem ve tabela.\nBu kitap seni adım adım anlatır.",
+  "guide.mcsport.p2.title": "Sahayı çağırma",
+  "guide.mcsport.p2.body": "Düdüğü sağ tıkla ya da V tuşuna bas:\nmaç kurulum ekranı açılır. Spor ve saha\nboyutunu seçip «Sahayı Kur» de; saha\ndüz bir alana anında inşa edilir.",
+  "guide.mcsport.p3.title": "Eşyalar ve takımlar",
+  "guide.mcsport.p3.body": "Düdük menüyü açar, kartlar hakem\nuyarılarıdır, topu sağ tık basılı tutup\nbırakarak şut çekersin. Takıma ekranla\nveya /mcsport join red|blue ile katıl.",
+  "guide.mcsport.p4.title": "Kontroller",
+  "guide.mcsport.p4.body": "V: maç menüsü      C: kayarak müdahale\nR: pas iste      Top: basılı tut, bırak\nKayma yalnızca maç sırasında çalışır.\nTuşlar Ayarlar > Kontroller'den değişir.",
+  "guide.mcsport.p5.title": "Maçın akışı",
+  "guide.mcsport.p5.body": "Kurulumdan sonra «Maçı Başlat». Hakem\ndüdük çalar, botlar diline göre isim alır\nve oyun başlar. Goller, fauller, kartlar\notomatik işlenir; sonda tören yapılır.",
+  "guide.mcsport.p6.title": "Komutlar ve ipuçları",
+  "guide.mcsport.p6.body": "/mcsport join red|blue|spectator\n/mcsport start [dk], pause, resume, reset\nTakımdan ayrılmak için menüyü kullan.\nKitap: kitap + düdük birleştir. İyi oyunlar!"
 }

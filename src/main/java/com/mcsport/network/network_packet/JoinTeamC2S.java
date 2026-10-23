@@ -41,6 +41,7 @@ public class JoinTeamC2S {
                 return;
             }
             MatchManager manager = MatchManager.get((ServerLevel) player.level());
+            manager.noteLanguage(player);
             manager.setTeam(player.getUUID(), team);
             manager.setKeeper(player.getUUID(), keeper && team != Team.SPECTATOR);
             manager.broadcast(player.server);

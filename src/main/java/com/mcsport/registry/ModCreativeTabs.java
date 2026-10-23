@@ -24,6 +24,7 @@ public class ModCreativeTabs {
                         output.accept(ModItems.WHISTLE.get());
                         output.accept(ModItems.YELLOW_CARD.get());
                         output.accept(ModItems.RED_CARD.get());
+                        output.accept(ModItems.GUIDE_BOOK.get());
                         // Field surface and markings.
                         output.accept(ModBlocks.ARTIFICIAL_TURF.get());
                         output.accept(ModBlocks.ARTIFICIAL_TURF_DARK.get());

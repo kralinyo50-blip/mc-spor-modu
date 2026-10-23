@@ -1,6 +1,5 @@
 {
   "itemGroup.mcsport.mcsport_tab": "MC Sports",
-
   "block.mcsport.artificial_turf": "Artificial Turf",
   "block.mcsport.artificial_turf_dark": "Dark Artificial Turf",
   "block.mcsport.field_line": "Field Line",
@@ -19,41 +18,33 @@
   "block.mcsport.stadium_roof": "Stadium Roof",
   "block.mcsport.stadium_lamp": "Stadium Lamp",
   "block.mcsport.trophy_block": "Championship Trophy",
-
   "item.mcsport.soccer_ball": "Soccer Ball",
   "item.mcsport.basketball": "Basketball",
   "item.mcsport.whistle": "Referee Whistle",
   "item.mcsport.yellow_card": "Yellow Card",
   "item.mcsport.red_card": "Red Card",
-
   "entity.mcsport.soccer_ball": "Sports Ball",
   "entity.mcsport.soccer_npc": "AI Footballer",
   "entity.mcsport.seat": "Seat",
-
   "key.categories.mcsport": "mcsport",
   "key.mcsport.match_menu": "Open Match Menu",
   "key.mcsport.slide_tackle": "Slide Tackle",
   "key.mcsport.pass_request": "Request Pass",
-
   "team.mcsport.red": "Home",
   "team.mcsport.blue": "Away",
   "team.mcsport.spectator": "Spectator",
-
   "club.mcsport.red": "Red Hawks",
   "club.mcsport.blue": "Blue Wave",
   "club.mcsport.yellow": "Yellow Stars",
   "club.mcsport.green": "Green Forest",
   "club.mcsport.purple": "Purple Bolts",
   "club.mcsport.orange": "Orange Fire",
-
   "match_state.mcsport.idle": "Idle",
   "match_state.mcsport.running": "Running",
   "match_state.mcsport.paused": "Paused",
   "match_state.mcsport.finished": "Finished",
-
   "sport.mcsport.soccer": "Soccer",
   "sport.mcsport.basketball": "Basketball",
-
   "field_size.mcsport.lv1": "Level 1 (Local Pitch)",
   "field_size.mcsport.lv2": "Level 2",
   "field_size.mcsport.lv3": "Level 3 (Small Field)",
@@ -64,14 +55,11 @@
   "field_size.mcsport.lv8": "Level 8",
   "field_size.mcsport.lv9": "Level 9",
   "field_size.mcsport.lv10": "Level 10 (Grand Stadium)",
-
   "difficulty.mcsport.easy": "Easy",
   "difficulty.mcsport.normal": "Normal",
   "difficulty.mcsport.hard": "Hard",
-
   "draw_rule.mcsport.end_draw": "End as draw",
   "draw_rule.mcsport.extra_time": "Play extra time",
-
   "gui.mcsport.match_title": "MC Sports Setup",
   "gui.mcsport.opt.sport": "Sport",
   "gui.mcsport.opt.field_size": "Field",
@@ -102,9 +90,7 @@
   "gui.mcsport.keeper_tag": "Goalkeeper",
   "gui.mcsport.shift_hint": "Shift + click: cycle option backwards",
   "gui.mcsport.locked_hint": "Setup options are locked while a match is running — pause or reset first",
-
   "hud.mcsport.charge": "Throw Power",
-
   "message.mcsport.field_built": "Field built (%2$s): %1$s blocks placed",
   "message.mcsport.scoreboard_line": "%1$s  %2$s : %3$s  %4$s",
   "message.mcsport.scoreboard_not_running": "No active match right now",
@@ -123,7 +109,6 @@
   "message.mcsport.referee_full_time": "Referee: FULL TIME! %1$s - the players salute the crowd.",
   "message.mcsport.result_winner": "%1$s win %2$d - %3$d",
   "message.mcsport.result_draw": "Draw %1$d - %2$d",
-
   "command.mcsport.joined": "You joined %s",
   "command.mcsport.unknown_team": "Unknown team: %s (use red, blue or spectator)",
   "command.mcsport.started": "Match started",
@@ -131,9 +116,27 @@
   "command.mcsport.resumed": "Match resumed",
   "command.mcsport.reset": "Match has been reset",
   "command.mcsport.no_field": "Build a field from the match menu first",
-
   "subtitles.mcsport.kick": "Ball kicked",
   "subtitles.mcsport.bounce": "Ball bounces",
   "subtitles.mcsport.goal_horn": "Goal horn",
-  "subtitles.mcsport.whistle": "Whistle blows"
+  "subtitles.mcsport.whistle": "Whistle blows",
+  "item.mcsport.guide_book": "Tutorial Book",
+  "entity.mcsport.referee": "Referee",
+  "gui.mcsport.minutes_value": "%s min",
+  "guide.mcsport.title": "MC Sport Guide",
+  "guide.mcsport.previous": "Previous",
+  "guide.mcsport.next": "Next",
+  "guide.mcsport.close": "Close",
+  "guide.mcsport.p1.title": "Welcome!",
+  "guide.mcsport.p1.body": "MC Sport brings a full football match\ninside Minecraft: ready-built pitches,\nsmart bot players, a referee and a\nscoreboard. This book walks you through it.",
+  "guide.mcsport.p2.title": "Summoning the field",
+  "guide.mcsport.p2.body": "Right-click the whistle or press V to open\nthe match setup screen. Pick a sport and\nfield size, then press Build Field — the\npitch appears instantly on flat ground.",
+  "guide.mcsport.p3.title": "Items and teams",
+  "guide.mcsport.p3.body": "The whistle opens the menu, cards are\nreferee warnings, and you shoot by holding\nright-click with a ball then releasing.\nJoin via the screen or /mcsport join red|blue.",
+  "guide.mcsport.p4.title": "Controls",
+  "guide.mcsport.p4.body": "V: match menu      C: slide tackle\nR: request pass      Ball: hold, release\nSlide tackles only work during a match.\nRebind keys under Options > Controls.",
+  "guide.mcsport.p5.title": "Match flow",
+  "guide.mcsport.p5.body": "Press Start Match after setup. The referee\nblows the whistle, bots take names in your\nlanguage and play begins. Goals, fouls and\ncards are automatic, with an end ceremony.",
+  "guide.mcsport.p6.title": "Commands and tips",
+  "guide.mcsport.p6.body": "/mcsport join red|blue|spectator\n/mcsport start [min], pause, resume, reset\nUse the menu to leave your team.\nCraft: book + whistle. Enjoy the match!"
 }

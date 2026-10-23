@@ -2,6 +2,7 @@ package com.mcsport.registry;
 
 import com.mcsport.McSport;
 import com.mcsport.item.CardItem;
+import com.mcsport.item.GuideBookItem;
 import com.mcsport.item.SportsBallItem;
 import com.mcsport.item.WhistleItem;
 import com.mcsport.match.BallType;
@@ -31,6 +32,9 @@ public class ModItems {
 
     public static final RegistryObject<Item> RED_CARD = ITEMS.register("red_card",
             () -> new CardItem(new Item.Properties().stacksTo(1), true));
+
+    public static final RegistryObject<Item> GUIDE_BOOK = ITEMS.register("guide_book",
+            () -> new GuideBookItem(new Item.Properties().stacksTo(1)));
 
     public static final RegistryObject<Item> ARTIFICIAL_TURF_ITEM =
             registerBlockItem("artificial_turf", ModBlocks.ARTIFICIAL_TURF);

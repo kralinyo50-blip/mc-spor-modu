@@ -324,7 +324,8 @@ public class MatchScreen extends Screen {
         difficultyButton.setMessage(option("gui.mcsport.opt.difficulty",
                 Component.translatable(draft.getDifficulty().translationKey())));
         halfButton.setMessage(option("gui.mcsport.opt.half_length",
-                Component.literal(draft.getHalfMinutes() + " dk")));
+                Component.translatable("gui.mcsport.minutes_value",
+                        draft.getHalfMinutes())));
         drawButton.setMessage(option("gui.mcsport.opt.draw_rule",
                 Component.translatable(draft.getDrawRule().translationKey())));
         homeFormButton.setMessage(option("gui.mcsport.opt.home_formation",

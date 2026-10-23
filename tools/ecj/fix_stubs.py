@@ -561,6 +561,11 @@ CURATED_FIELDS = {
     "Screen": [("net.minecraft.client.gui.Font", "font"),
                ("net.minecraft.network.chat.Component", "title")],
     "Button": [("boolean", "active")],
+    # Real 1.20.1 API: ServerPlayer.connection is the game listener, and
+    # ServerCommonPacketListenerImpl exposes the synced client locale string.
+    "ServerPlayer": [("net.minecraft.server.network.ServerGamePacketListenerImpl",
+                      "connection")],
+    "ServerGamePacketListenerImpl": [("java.lang.String", "language")],
     "HumanoidModel": [("net.minecraft.client.model.geom.ModelPart", "rightArm"),
                       ("net.minecraft.client.model.geom.ModelPart", "leftArm"),
                       ("net.minecraft.client.model.geom.ModelPart", "rightLeg"),
