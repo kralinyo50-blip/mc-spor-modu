@@ -1,0 +1,29 @@
+{
+  "parent": "mcsport:first_goal",
+  "display": {
+    "icon": {
+      "item": "mcsport:red_card"
+    },
+    "title": {
+      "translate": "advancement.mcsport.hat_trick.title"
+    },
+    "description": {
+      "translate": "advancement.mcsport.hat_trick.description"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "three_goals": {
+      "trigger": "mcsport:player_goal",
+      "conditions": {
+        "count": 3
+      }
+    }
+  },
+  "requirements": [
+    ["three_goals"]
+  ]
+}

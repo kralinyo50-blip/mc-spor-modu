@@ -1,0 +1,29 @@
+{
+  "parent": "mcsport:first_match",
+  "display": {
+    "icon": {
+      "item": "mcsport:trophy_block"
+    },
+    "title": {
+      "translate": "advancement.mcsport.champion.title"
+    },
+    "description": {
+      "translate": "advancement.mcsport.champion.description"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "win": {
+      "trigger": "mcsport:match_win",
+      "conditions": {
+        "count": 1
+      }
+    }
+  },
+  "requirements": [
+    ["win"]
+  ]
+}

@@ -7,7 +7,12 @@ package com.mcsport.match;
 public enum Formation {
     F_2_1_1("2-1-1"),
     F_1_2_1("1-2-1"),
-    F_1_1_2("1-1-2");
+    F_1_1_2("1-1-2"),
+    // Appended after the original three so saved ordinals keep their meaning.
+    // FormationLayout parses every "defence-mid-attack" label generically.
+    F_3_1_1("3-1-1"),
+    F_2_2_1("2-2-1"),
+    F_1_3_1("1-3-1");
 
     private final String label;
 

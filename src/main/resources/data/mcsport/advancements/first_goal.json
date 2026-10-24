@@ -1,0 +1,29 @@
+{
+  "parent": "mcsport:first_match",
+  "display": {
+    "icon": {
+      "item": "mcsport:soccer_ball"
+    },
+    "title": {
+      "translate": "advancement.mcsport.first_goal.title"
+    },
+    "description": {
+      "translate": "advancement.mcsport.first_goal.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "goal": {
+      "trigger": "mcsport:player_goal",
+      "conditions": {
+        "count": 1
+      }
+    }
+  },
+  "requirements": [
+    ["goal"]
+  ]
+}

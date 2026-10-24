@@ -1,5 +1,6 @@
 package com.mcsport.network.network_packet;
 
+import com.mcsport.advancement.ModCriteriaTriggers;
 import com.mcsport.match.MatchManager;
 import com.mcsport.match.Team;
 import net.minecraft.network.FriendlyByteBuf;
@@ -43,6 +44,9 @@ public class JoinTeamC2S {
             MatchManager manager = MatchManager.get((ServerLevel) player.level());
             manager.setTeam(player.getUUID(), team);
             manager.setKeeper(player.getUUID(), keeper && team != Team.SPECTATOR);
+            if (team != Team.SPECTATOR) {
+                ModCriteriaTriggers.TEAM_JOIN.trigger(player, 1);
+            }
             manager.broadcast(player.server);
         });
         context.setPacketHandled(true);

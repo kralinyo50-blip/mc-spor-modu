@@ -1,5 +1,6 @@
 package com.mcsport.match;
 
+import com.mcsport.advancement.ModCriteriaTriggers;
 import com.mcsport.entity.SoccerBallEntity;
 import com.mcsport.entity.SoccerNpcEntity;
 import com.mcsport.network.ModNetwork;
@@ -72,6 +73,9 @@ public class MatchManager extends SavedData {
     // Discipline ledger: total fouls and shown yellow cards per participant.
     private final Map<UUID, Integer> foulCounts = new HashMap<>();
     private final Map<UUID, Integer> yellowCardCounts = new HashMap<>();
+    // Real-player goals during the current match; drives the goal/hat-trick
+    // advancements. Cleared whenever a fresh match starts, never saved.
+    private final Map<UUID, Integer> playerGoals = new HashMap<>();
     // Real-player slide tackles: cooldown gate plus the active contact window.
     private final Map<UUID, Integer> playerSlideCooldownUntil = new HashMap<>();
     private final Map<UUID, Integer> playerSlideActiveUntil = new HashMap<>();
@@ -174,8 +178,35 @@ public class MatchManager extends SavedData {
             // Begin the farewell scene: wave first, then the squad despawns.
             ceremonyStarted = false;
             ceremonyTicks = SoccerNpcEntity.WAVE_DURATION_TICKS + 35;
+            awardWinAdvancements(server);
             setDirty();
         }
+    }
+
+    /** Fires the champion advancement for every real player on the winning side. */
+    private void awardWinAdvancements(MinecraftServer server) {
+        if (redScore == blueScore) {
+            return;
+        }
+        Team winner = redScore > blueScore ? Team.RED : Team.BLUE;
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            if (getTeam(player.getUUID()) == winner) {
+                ModCriteriaTriggers.MATCH_WIN.trigger(player, 1);
+            }
+        }
+    }
+
+    /**
+     * Credits a real player with a goal they actually struck and fires the
+     * goal/hat-trick triggers with their running total for this match.
+     */
+    public void notePlayerGoal(ServerPlayer scorer) {
+        if (scorer == null) {
+            return;
+        }
+        int total = playerGoals.merge(scorer.getUUID(), 1, Integer::sum);
+        ModCriteriaTriggers.PLAYER_GOAL.trigger(scorer, total);
+        setDirty();
     }
 
     /**
@@ -308,6 +339,7 @@ public class MatchManager extends SavedData {
             blueScore = 0;
             foulCounts.clear();
             yellowCardCounts.clear();
+            playerGoals.clear();
             passRequestUntil.clear();
             redChaser = null;
             blueChaser = null;
@@ -352,6 +384,7 @@ public class MatchManager extends SavedData {
         endFreeKick();
         foulCounts.clear();
         yellowCardCounts.clear();
+        playerGoals.clear();
         setDirty();
     }
 
@@ -589,6 +622,11 @@ public class MatchManager extends SavedData {
         lastFoulPos = pos;
         lastFoulTackler = tackler.getUUID();
         lastFoulCard = registerDiscipline(tackler.getUUID());
+        if (tackler instanceof ServerPlayer player && lastFoulCard != SoccerNpcEntity.CARD_NONE) {
+            // Yellow tier satisfies value 1, a straight red satisfies both.
+            ModCriteriaTriggers.CARD_SHOWN.trigger(player,
+                    lastFoulCard == SoccerNpcEntity.CARD_RED ? 2 : 1);
+        }
         beginFreeKick(level, favoured, pos);
         setDirty();
     }
