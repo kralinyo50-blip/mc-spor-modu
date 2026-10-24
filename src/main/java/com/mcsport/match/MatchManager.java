@@ -161,7 +161,7 @@ public class MatchManager extends SavedData {
             if (remainingSeconds > 0) {
                 remainingSeconds--;
                 if (remainingSeconds == 0) {
-                    handleClockEnd();
+                    handleClockEnd(server);
                 }
                 setDirty();
                 broadcast(server);
@@ -169,7 +169,7 @@ public class MatchManager extends SavedData {
         }
     }
 
-    private void handleClockEnd() {
+    private void handleClockEnd(MinecraftServer server) {
         if (redScore == blueScore && settings.getDrawRule() == DrawRule.EXTRA_TIME && !extraTimeUsed) {
             extraTimeUsed = true;
             remainingSeconds = MatchSettings.EXTRA_TIME_SECONDS;
