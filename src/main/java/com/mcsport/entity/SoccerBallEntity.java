@@ -32,6 +32,7 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraftforge.network.NetworkHooks;
 
+import java.util.UUID;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -66,6 +67,12 @@ public class SoccerBallEntity extends Entity {
     private float spin;
     /** Keeper holding the ball; while non-null the ball follows the carrier and skips physics. */
     private Entity carrier;
+    /**
+     * Last real player to strike this ball. Server-side only, not synched: it
+     * lets goal detection credit the scorer for advancements. A bot touch or
+     * a reset clears it so a later own-direction goal is not misattributed.
+     */
+    private UUID lastPlayerKicker;
 
     public SoccerBallEntity(EntityType<?> type, Level level) {
         super(type, level);
@@ -320,6 +327,7 @@ public class SoccerBallEntity extends Entity {
         setDeltaMovement(look.x * speed, upward, look.z * speed);
         visualYaw = player.getYRot();
         applyPlayerSpin(player);
+        lastPlayerKicker = player.getUUID();
         kickCooldown = KICK_COOLDOWN_TICKS;
         hasImpulse = true;
         level().playSound(null, this, ModSounds.KICK.get(), SoundSource.PLAYERS, 1.0F, 1.0F);
@@ -332,6 +340,7 @@ public class SoccerBallEntity extends Entity {
         }
         Vec3 look = player.getLookAngle();
         setDeltaMovement(look.x * 0.75D, 0.18D, look.z * 0.75D);
+        lastPlayerKicker = player.getUUID();
         visualYaw = player.getYRot();
         applyPlayerSpin(player);
         kickCooldown = KICK_COOLDOWN_TICKS;
@@ -372,6 +381,8 @@ public class SoccerBallEntity extends Entity {
         visualYaw = mob.getYRot();
         // Bot strikes are straight: do not inherit curl from a player's shot.
         spin = 0.0F;
+        // A bot touch breaks the player's scoring attribution chain.
+        lastPlayerKicker = null;
         kickCooldown = 8;
         hasImpulse = true;
         level().playSound(null, this, ModSounds.KICK.get(), SoundSource.PLAYERS, 0.9F, 1.0F);
@@ -430,9 +441,19 @@ public class SoccerBallEntity extends Entity {
         moveTo(pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D, 0.0F, 0.0F);
         setDeltaMovement(Vec3.ZERO);
         spin = 0.0F;
+        lastPlayerKicker = null;
         hasImpulse = true;
         kickCooldown = 10;
         goalCooldown = 60;
+    }
+
+    public UUID getLastPlayerKicker() {
+        return lastPlayerKicker;
+    }
+
+    /** Used when a ball item is thrown: the thrower is its first striker. */
+    public void setLastPlayerKicker(UUID uuid) {
+        this.lastPlayerKicker = uuid;
     }
 
     /** CollisionGetter#getCollisions returns an Iterable in 1.20.1; wrap it as a Stream. */

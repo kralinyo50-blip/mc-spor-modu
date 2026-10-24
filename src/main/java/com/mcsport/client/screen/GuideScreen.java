@@ -33,6 +33,10 @@ public class GuideScreen extends Screen {
                     new ResourceLocation(McSport.MOD_ID, "textures/gui/guide/guide_referee.png")),
             new Page("guide.mcsport.p6.title", "guide.mcsport.p6.body",
                     new ResourceLocation(McSport.MOD_ID, "textures/gui/guide/guide_referee.png")),
+            new Page("guide.mcsport.p7.title", "guide.mcsport.p7.body",
+                    new ResourceLocation(McSport.MOD_ID, "textures/gui/guide/guide_stadium.png")),
+            new Page("guide.mcsport.p8.title", "guide.mcsport.p8.body",
+                    new ResourceLocation(McSport.MOD_ID, "textures/gui/guide/guide_items.png")),
     };
 
     private int pageIndex;

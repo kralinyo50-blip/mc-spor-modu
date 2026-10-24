@@ -4,6 +4,7 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mcsport.advancement.ModCriteriaTriggers;
 import com.mcsport.match.MatchManager;
 import com.mcsport.match.MatchState;
 import com.mcsport.match.Team;
@@ -60,6 +61,9 @@ public class McSportCommand {
         manager.setTeam(player.getUUID(), team);
         // Command joins never carry the keeper flag from the match GUI.
         manager.setKeeper(player.getUUID(), false);
+        if (team != Team.SPECTATOR) {
+            ModCriteriaTriggers.TEAM_JOIN.trigger(player, 1);
+        }
         manager.broadcast(player.server);
         source.sendSuccess(() -> Component.translatable("command.mcsport.joined",
                 Component.translatable(team.translationKey())), false);

@@ -1,6 +1,7 @@
 package com.mcsport;
 
 import com.mojang.logging.LogUtils;
+import com.mcsport.advancement.ModCriteriaTriggers;
 import com.mcsport.event.ModGameEvents;
 import com.mcsport.network.ModNetwork;
 import com.mcsport.registry.ModBlockEntities;
@@ -38,6 +39,9 @@ public class McSport {
         ModCreativeTabs.TABS.register(modEventBus);
 
         modEventBus.addListener(ModNetwork::register);
+
+        // Register custom advancement triggers before any world load.
+        ModCriteriaTriggers.init();
 
         MinecraftForge.EVENT_BUS.register(ModGameEvents.class);
 

@@ -1,0 +1,29 @@
+{
+  "parent": "mcsport:root",
+  "display": {
+    "icon": {
+      "item": "mcsport:guide_book"
+    },
+    "title": {
+      "translate": "advancement.mcsport.bookworm.title"
+    },
+    "description": {
+      "translate": "advancement.mcsport.bookworm.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": false,
+    "hidden": false
+  },
+  "criteria": {
+    "book": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipe": "mcsport:guide_book"
+      }
+    }
+  },
+  "requirements": [
+    ["book"]
+  ]
+}

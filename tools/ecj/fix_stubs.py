@@ -84,6 +84,21 @@ CURATED_DECLS = {
         "protected void registerGoals() {}",
         "protected void defineSynchedData() {}",
     ],
+    # CURATED_DECLS removes same-named inferred overloads first, which is
+    # required here: the inferred Object-returning register(Object) would
+    # clash by erasure with this real generic 1.20.1 signature.
+    "CriteriaTriggers": [
+        "public static <T> T register(T a0) { return null; }",
+    ],
+    # Real 1.20.1 generic trigger surface used by com.mcsport.advancement.
+    "SimpleCriterionTrigger": [
+        "public net.minecraft.resources.ResourceLocation getId() { return null; }",
+        "protected void trigger(net.minecraft.server.level.ServerPlayer a0, "
+        "java.util.function.Predicate<T0> a1) {}",
+        "protected T0 createInstance(com.google.gson.JsonObject a0, "
+        "net.minecraft.advancements.critereon.ContextAwarePredicate a1, "
+        "net.minecraft.advancements.critereon.DeserializationContext a2) { return null; }",
+    ],
     "HorizontalDirectionalBlock": [
         "protected void createBlockStateDefinition("
         "net.minecraft.world.level.block.state.StateDefinition.Builder"
@@ -395,6 +410,8 @@ CURATED_METHODS = {
         "net.minecraft.network.chat.MutableComponent withStyle(java.lang.Object a0, java.lang.Object a1)"],
     "Vec3": ["float dot(net.minecraft.world.phys.Vec3 a0)"],
     "CommandSourceStack": ["void sendSuccess(java.util.function.Supplier a0, boolean a1)"],
+    "Font": ["int width(net.minecraft.network.chat.Component a0)"],
+    "GsonHelper": ["static int getAsInt(com.google.gson.JsonObject a0, String a1, int a2)"],
     "FMLCommonSetupEvent": ["void enqueueWork(java.lang.Runnable a0)"],
     "FMLClientSetupEvent": ["void enqueueWork(java.lang.Runnable a0)"],
     "Goal": ["void setFlags(java.util.EnumSet a0)"],

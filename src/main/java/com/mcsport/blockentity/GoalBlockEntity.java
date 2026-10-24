@@ -15,8 +15,10 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Server-side goal detector. Only runs on the logical server, performs one
@@ -66,8 +68,18 @@ public class GoalBlockEntity extends BlockEntity {
         ServerLevel serverLevel = (ServerLevel) level;
         Team scoringTeam = defendingTeam.opponent();
 
-        boolean counted = MatchManager.get(serverLevel).onGoal(scoringTeam);
-        MatchManager.get(serverLevel).broadcast(serverLevel.getServer());
+        MatchManager manager = MatchManager.get(serverLevel);
+        boolean counted = manager.onGoal(scoringTeam);
+        // Credit the real striker, but only when they actually play for the
+        // scoring side; bot touches clear the attribution on the ball.
+        UUID kickerId = ball.getLastPlayerKicker();
+        if (counted && kickerId != null && manager.getTeam(kickerId) == scoringTeam) {
+            ServerPlayer scorer = serverLevel.getServer().getPlayerList().getPlayer(kickerId);
+            if (scorer != null) {
+                manager.notePlayerGoal(scorer);
+            }
+        }
+        manager.broadcast(serverLevel.getServer());
 
         level.playSound(null, worldPosition, ModSounds.GOAL_HORN.get(),
                 SoundSource.BLOCKS, 2.0F, counted ? 1.0F : 0.8F);
