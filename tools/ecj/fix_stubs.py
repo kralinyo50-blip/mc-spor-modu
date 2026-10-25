@@ -1777,6 +1777,13 @@ def force_block_entity_renderer_contract():
         s = open(block_entity).read()
         s = re.sub(r"public java\.lang\.Object saveAdditional\(([^)]*)\) \{ return null; \}",
                    r"protected void saveAdditional(\1) {}", s)
+        # The generator mirrors mod-only members (GoalBlockEntity.serverTick,
+        # registry statics) onto the vanilla parent. Real BlockEntity has
+        # neither, and the phantom serverTick(Level) hides ticker signature
+        # mismatches that javac rejects. Strip them every iteration.
+        s = re.sub(r"\s*public void serverTick\([^)]*\) \{\}\n?", "\n", s)
+        s = re.sub(r"\s*protected static java\.lang\.Object (?:GOAL|GOAL_HORN|SCOREBOARD);\n?",
+                   "\n", s)
         open(block_entity, "w").write(s)
 
     # Font.DisplayMode.NORMAL must be a static enum-style constant.
@@ -1790,6 +1797,26 @@ def force_block_entity_renderer_contract():
                           "public static class DisplayMode {\n"
                           "        public static net.minecraft.client.gui.Font.DisplayMode NORMAL;", 1)
         open(font, "w").write(s)
+
+
+def strip_phantom_block_entity_members():
+    """Final gate: vanilla BlockEntity has no serverTick/registry statics.
+
+    The inference loop can re-mirror mod-only members onto the parent within
+    the same iteration, so this runs again after every other mutation. Leaving
+    the phantom serverTick(Level) hides real ticker-signature bugs that javac
+    rejects (see the 1.1.2 hotfix cycle).
+    """
+    block_entity = os.path.join(STUBS, "net", "minecraft", "world", "level",
+                                "block", "entity", "BlockEntity.java")
+    if not os.path.exists(block_entity):
+        return
+    s = open(block_entity).read()
+    s2 = re.sub(r"\s*public void serverTick\([^)]*\) \{\}\n?", "\n", s)
+    s2 = re.sub(r"\s*protected static java\.lang\.Object (?:GOAL|GOAL_HORN|SCOREBOARD);\n?",
+                "\n", s2)
+    if s2 != s:
+        open(block_entity, "w").write(s2)
 
 
 def normalize_stubs():
@@ -2257,6 +2284,7 @@ def main():
             failures.append((d["msg"][:70], str(e)[:50]))
     sweep_referenced_types()
     normalize_stubs()
+    strip_phantom_block_entity_members()
     if failures:
         print("failures:", len(failures), failures[:3])
     print("actions:", dict(actions), "remaining_mod_errors:", len(mod_diags))
