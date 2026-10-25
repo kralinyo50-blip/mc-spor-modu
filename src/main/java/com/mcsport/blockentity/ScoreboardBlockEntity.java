@@ -9,6 +9,7 @@ import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -34,7 +35,11 @@ public class ScoreboardBlockEntity extends BlockEntity {
         super(ModBlockEntities.SCOREBOARD.get(), pos, state);
     }
 
-    public void serverTick(ServerLevel level) {
+    public void serverTick(Level rawLevel) {
+        // The block only registers this ticker on the logical server.
+        if (!(rawLevel instanceof ServerLevel level)) {
+            return;
+        }
         if (++tickCounter < SYNC_INTERVAL_TICKS) {
             return;
         }
