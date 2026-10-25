@@ -156,5 +156,15 @@
   "guide.mcsport.p8.title": "Advancements",
   "guide.mcsport.p8.body": "MC Sport offers seven advancements: first\nmatch, first goal, hat-trick, champion,\na card and crafting the Tutorial Book.\nTrack them all on the advancements\nscreen (L). High-scoring matches ahead!",
   "guide.mcsport.p7.title": "Formations and tactics",
-  "guide.mcsport.p7.body": "The setup screen offers six formations:\n2-1-1, 1-2-1, 1-1-2, 3-1-1, 2-2-1\nand 1-3-1. First number is defence,\nmiddle is midfield, last is attack.\nShift + click cycles back to the previous one."
+  "guide.mcsport.p7.body": "The setup screen offers six formations:\n2-1-1, 1-2-1, 1-1-2, 3-1-1, 2-2-1\nand 1-3-1. First number is defence,\nmiddle is midfield, last is attack.\nShift + click cycles back to the previous one.",
+  "match_state.mcsport.half_time": "Half Time",
+  "message.mcsport.half_time": "Half time! The score is %1$s - %2$s. Teams are swapping sides...",
+  "message.mcsport.second_half": "The second half has kicked off! Enjoy the game.",
+  "command.mcsport.clubname_set": "Club name changed: %s",
+  "command.mcsport.clubname_cleared": "All custom club names were cleared.",
+  "command.mcsport.unknown_side": "Unknown side: %s (use home, away or clear)",
+  "guide.mcsport.p9.title": "Half time",
+  "guide.mcsport.p9.body": "Matches now have two halves. When the\nfirst half ends, a 10-second break\nbegins; the squads regroup, swap sides\nand the second half kicks off. The\nscore and clock show on the HUD and\nlive scoreboard block.",
+  "guide.mcsport.p10.title": "Your own club",
+  "guide.mcsport.p10.body": "Name the sides yourself:\n/mcsport clubname home <name>\n/mcsport clubname away <name>\nUse clubname clear to reset.\nCustom names appear on the board, the\nsetup screen and throughout the match."
 }

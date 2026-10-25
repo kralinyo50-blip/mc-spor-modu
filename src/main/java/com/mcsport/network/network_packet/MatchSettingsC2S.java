@@ -39,6 +39,8 @@ public class MatchSettingsC2S {
         value.setAwayFormation(Formation.byOrdinal(buffer.readByte()));
         value.setHomeClub(Club.byOrdinal(buffer.readByte()));
         value.setAwayClub(Club.byOrdinal(buffer.readByte()));
+        value.setHomeCustomName(buffer.readUtf(MatchSettings.MAX_CLUB_NAME));
+        value.setAwayCustomName(buffer.readUtf(MatchSettings.MAX_CLUB_NAME));
         this.settings = value;
     }
 
@@ -53,6 +55,8 @@ public class MatchSettingsC2S {
         buffer.writeByte(settings.getAwayFormation().ordinal());
         buffer.writeByte(settings.getHomeClub().ordinal());
         buffer.writeByte(settings.getAwayClub().ordinal());
+        buffer.writeUtf(settings.getHomeCustomName(), MatchSettings.MAX_CLUB_NAME);
+        buffer.writeUtf(settings.getAwayCustomName(), MatchSettings.MAX_CLUB_NAME);
     }
 
     public void handle(Supplier<NetworkEvent.Context> contextSupplier) {

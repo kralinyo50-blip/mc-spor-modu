@@ -20,9 +20,9 @@ import net.minecraftforge.network.simple.SimpleChannel;
  */
 public final class ModNetwork {
 
-    // "6" adds the LanguageC2S client-locale sync; client and server accept
-    // only this exact version.
-    private static final String PROTOCOL_VERSION = "6";
+    // "7" adds half-time state plus club display names in the snapshots;
+    // client and server accept only this exact version.
+    private static final String PROTOCOL_VERSION = "7";
 
     public static SimpleChannel CHANNEL;
 

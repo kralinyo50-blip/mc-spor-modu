@@ -93,6 +93,7 @@ public class HudOverlay {
         return switch (state) {
             case RUNNING -> TEXT_DIM;
             case PAUSED -> 0xFFFFD060;
+            case HALF_TIME -> 0xFF7FE0FF;
             case FINISHED -> 0xFFFFCC33;
             default -> 0xFF9A9A9A;
         };

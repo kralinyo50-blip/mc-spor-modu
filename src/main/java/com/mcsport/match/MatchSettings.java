@@ -24,6 +24,11 @@ public class MatchSettings {
     // themselves stay fixed, only their name, kit and seat colours change.
     private Club homeClub = Club.RED;
     private Club awayClub = Club.BLUE;
+    // Optional operator-chosen display names. Blank means the translated
+    // club enum name is shown. Length is clamped on every setter.
+    public static final int MAX_CLUB_NAME = 24;
+    private String homeCustomName = "";
+    private String awayCustomName = "";
 
     public BallType getSport() {
         return sport;
@@ -105,8 +110,49 @@ public class MatchSettings {
         this.awayClub = awayClub == null ? Club.BLUE : awayClub;
     }
 
+    public String getHomeCustomName() {
+        return homeCustomName;
+    }
+
+    public String getAwayCustomName() {
+        return awayCustomName;
+    }
+
+    public void setHomeCustomName(String name) {
+        this.homeCustomName = sanitizeName(name);
+    }
+
+    public void setAwayCustomName(String name) {
+        this.awayCustomName = sanitizeName(name);
+    }
+
+    private static String sanitizeName(String name) {
+        if (name == null) {
+            return "";
+        }
+        String trimmed = name.trim();
+        if (trimmed.length() > MAX_CLUB_NAME) {
+            trimmed = trimmed.substring(0, MAX_CLUB_NAME);
+        }
+        return trimmed;
+    }
+
     public int getHalfLengthSeconds() {
         return halfMinutes * 60;
+    }
+
+    /** Home side label: the operator's custom name if set, else the club's translation. */
+    public net.minecraft.network.chat.Component homeDisplayName() {
+        return homeCustomName.isBlank()
+                ? net.minecraft.network.chat.Component.translatable(homeClub.translationKey())
+                : net.minecraft.network.chat.Component.literal(homeCustomName);
+    }
+
+    /** Away side label: the operator's custom name if set, else the club's translation. */
+    public net.minecraft.network.chat.Component awayDisplayName() {
+        return awayCustomName.isBlank()
+                ? net.minecraft.network.chat.Component.translatable(awayClub.translationKey())
+                : net.minecraft.network.chat.Component.literal(awayCustomName);
     }
 
     public MatchSettings copy() {
@@ -121,6 +167,8 @@ public class MatchSettings {
         copy.awayFormation = awayFormation;
         copy.homeClub = homeClub;
         copy.awayClub = awayClub;
+        copy.homeCustomName = homeCustomName;
+        copy.awayCustomName = awayCustomName;
         return copy;
     }
 }

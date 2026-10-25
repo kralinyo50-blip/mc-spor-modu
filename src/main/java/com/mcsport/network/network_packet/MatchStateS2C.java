@@ -2,6 +2,7 @@ package com.mcsport.network.network_packet;
 
 import com.mcsport.client.ClientMatchData;
 import com.mcsport.match.BallType;
+import com.mcsport.match.Club;
 import com.mcsport.match.DrawRule;
 import com.mcsport.match.FieldSize;
 import com.mcsport.match.Formation;
@@ -62,6 +63,10 @@ public class MatchStateS2C {
         value.setDrawRule(DrawRule.byOrdinal(buffer.readByte()));
         value.setHomeFormation(Formation.byOrdinal(buffer.readByte()));
         value.setAwayFormation(Formation.byOrdinal(buffer.readByte()));
+        value.setHomeClub(Club.byOrdinal(buffer.readByte()));
+        value.setAwayClub(Club.byOrdinal(buffer.readByte()));
+        value.setHomeCustomName(buffer.readUtf(MatchSettings.MAX_CLUB_NAME));
+        value.setAwayCustomName(buffer.readUtf(MatchSettings.MAX_CLUB_NAME));
         this.settings = value;
     }
 
@@ -81,6 +86,10 @@ public class MatchStateS2C {
         buffer.writeByte(settings.getDrawRule().ordinal());
         buffer.writeByte(settings.getHomeFormation().ordinal());
         buffer.writeByte(settings.getAwayFormation().ordinal());
+        buffer.writeByte(settings.getHomeClub().ordinal());
+        buffer.writeByte(settings.getAwayClub().ordinal());
+        buffer.writeUtf(settings.getHomeCustomName(), MatchSettings.MAX_CLUB_NAME);
+        buffer.writeUtf(settings.getAwayCustomName(), MatchSettings.MAX_CLUB_NAME);
     }
 
     public void handle(Supplier<NetworkEvent.Context> contextSupplier) {

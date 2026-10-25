@@ -12,6 +12,12 @@ public enum MatchState {
     RUNNING,
     /** Clock temporarily stopped, scores kept. */
     PAUSED,
+    /**
+     * Half-time intermission. The clock is frozen, the squads regroup and
+     * sides are swapped before the second half kicks off. Appended last so
+     * saved ordinals of the older states keep their meaning.
+     */
+    HALF_TIME,
     /** Clock reached zero. */
     FINISHED;
 

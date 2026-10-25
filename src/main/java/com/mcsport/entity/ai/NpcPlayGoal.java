@@ -813,7 +813,7 @@ public class NpcPlayGoal extends Goal {
                     npc.getSportTeam() == Team.RED ? manager.getSettings().getHomeFormation()
                             : manager.getSettings().getAwayFormation(),
                     npc.getSportTeam(), npc.getSquadIndex(),
-                    manager.getSettings().getTeamSize(), false);
+                    manager.getSettings().getTeamSize(), false, manager.isSidesSwapped());
             moveToward(home, 1.0D);
             return;
         }
@@ -870,7 +870,7 @@ public class NpcPlayGoal extends Goal {
                 npc.getSportTeam() == Team.RED ? manager.getSettings().getHomeFormation()
                         : manager.getSettings().getAwayFormation(),
                 npc.getSportTeam(), npc.getSquadIndex(),
-                manager.getSettings().getTeamSize(), false);
+                manager.getSettings().getTeamSize(), false, manager.isSidesSwapped());
         moveToward(home, 1.0D);
     }
 
@@ -902,12 +902,13 @@ public class NpcPlayGoal extends Goal {
             boolean taker = isNearestOutfield(level, manager.getFreeKickPos(), npc.getSportTeam());
             if (taker && ball != null && npc.distanceToSqr(ball) < KICK_DISTANCE_SQR) {
                 manager.endFreeKick();
-            } else {
+                } else {
                 moveToward(taker && ball != null ? ball.position()
                         : FormationLayout.homePosition(center, settings.getFieldSize(),
                         npc.getSportTeam() == Team.RED ? settings.getHomeFormation()
                                 : settings.getAwayFormation(),
-                        npc.getSportTeam(), npc.getSquadIndex(), settings.getTeamSize(), false), 1.05D);
+                        npc.getSportTeam(), npc.getSquadIndex(), settings.getTeamSize(), false,
+                        manager.isSidesSwapped()), 1.05D);
             }
             return;
         }
@@ -991,7 +992,8 @@ public class NpcPlayGoal extends Goal {
         Formation formation = npc.getSportTeam() == Team.RED
                 ? settings.getHomeFormation() : settings.getAwayFormation();
         Vec3 home = FormationLayout.homePosition(center, size, formation, npc.getSportTeam(),
-                npc.getSquadIndex(), settings.getTeamSize(), npc.isKeeper());
+                npc.getSquadIndex(), settings.getTeamSize(), npc.isKeeper(),
+                manager.isSidesSwapped());
 
         if (npc.isKeeper()) {
             int inward = Integer.signum(center.getZ() - ownGoal.getZ());

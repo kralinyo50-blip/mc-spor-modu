@@ -45,7 +45,47 @@ public class McSportCommand {
                         .executes(context -> resumeMatch(context.getSource())))
                 .then(Commands.literal("reset")
                         .requires(source -> source.hasPermission(2))
-                        .executes(context -> resetMatch(context.getSource()))));
+                        .executes(context -> resetMatch(context.getSource())))
+                .then(Commands.literal("clubname")
+                        .requires(source -> source.hasPermission(2))
+                        .then(Commands.argument("side", StringArgumentType.word())
+                                .suggests((context, builder) ->
+                                        SharedSuggestionProvider.suggest(new String[]{"home", "away", "clear"}, builder))
+                                .then(Commands.argument("name", StringArgumentType.greedyString())
+                                        .executes(context -> renameClub(context.getSource(),
+                                                StringArgumentType.getString(context, "side"),
+                                                StringArgumentType.getString(context, "name"))))
+                                .executes(context -> renameClub(context.getSource(),
+                                        StringArgumentType.getString(context, "side"), "")))));
+    }
+
+    private static int renameClub(CommandSourceStack source, String sideName, String name) {
+        boolean home;
+        switch (sideName.toLowerCase(Locale.ROOT)) {
+            case "home" -> home = true;
+            case "away" -> home = false;
+            case "clear" -> {
+                ServerLevel level = source.getLevel().getServer().overworld();
+                MatchManager manager = MatchManager.get(level);
+                manager.renameClub(true, "");
+                manager.renameClub(false, "");
+                manager.broadcast(source.getServer());
+                source.sendSuccess(() -> Component.translatable("command.mcsport.clubname_cleared"), true);
+                return 1;
+            }
+            default -> {
+                source.sendFailure(Component.translatable("command.mcsport.unknown_side", sideName));
+                return 0;
+            }
+        }
+        ServerLevel level = source.getLevel().getServer().overworld();
+        MatchManager manager = MatchManager.get(level);
+        manager.renameClub(home, name);
+        manager.broadcast(source.getServer());
+        Component label = home ? manager.getSettings().homeDisplayName()
+                : manager.getSettings().awayDisplayName();
+        source.sendSuccess(() -> Component.translatable("command.mcsport.clubname_set", label), true);
+        return 1;
     }
 
     private static int joinTeam(CommandSourceStack source, String teamName) throws CommandSyntaxException {

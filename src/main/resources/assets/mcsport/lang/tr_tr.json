@@ -156,5 +156,15 @@
   "guide.mcsport.p7.title": "Dizilişler ve taktik",
   "guide.mcsport.p7.body": "Kurulum ekranında altı diziliş vardır:\n2-1-1, 1-2-1, 1-1-2, 3-1-1,\n2-2-1 ve 1-3-1. İlk sayı savunma,\nortası orta saha, sonu hücumdur.\nShift + tık önceki dizilişe döner.",
   "guide.mcsport.p8.title": "Başarımlar",
-  "guide.mcsport.p8.body": "MC Spor yedi başarım sunar: ilk maç,\nilk gol, hat-trick, şampiyonluk, kart\nve Öğretici Kitap üretimi. İlerleme\nekranından (L) hepsini takip et.\nBol gollü maçlar!"
+  "guide.mcsport.p8.body": "MC Spor yedi başarım sunar: ilk maç,\nilk gol, hat-trick, şampiyonluk, kart\nve Öğretici Kitap üretimi. İlerleme\nekranından (L) hepsini takip et.\nBol gollü maçlar!",
+  "match_state.mcsport.half_time": "Devre Arası",
+  "message.mcsport.half_time": "Devre arası! Skor %1$s - %2$s. Takımlar taraf değiştiriyor...",
+  "message.mcsport.second_half": "İkinci yarı başladı! İyi oyunlar.",
+  "command.mcsport.clubname_set": "Kulüp adı değiştirildi: %s",
+  "command.mcsport.clubname_cleared": "Tüm özel kulüp adları temizlendi.",
+  "command.mcsport.unknown_side": "Geçersiz taraf: %s (home, away veya clear kullanın)",
+  "guide.mcsport.p9.title": "Devre arası",
+  "guide.mcsport.p9.body": "Maçlar artık iki yarıdır. İlk yarı\nbitince 10 saniyelik devre arası girilir;\ntakımlar kenara çekilir, sonra taraf\ndeğiştirip ikinci yarı başlar. Skor ve\nsüre HUD ile canlı tabelada görünür.",
+  "guide.mcsport.p10.title": "Kendi kulübün",
+  "guide.mcsport.p10.body": "Takımlara kendi adını verebilirsin:\n/mcsport clubname home <ad>\n/mcsport clubname away <ad>\nTemizlemek için: clubname clear\nÖzel ad tabelada, kurulum ekranında\nve maç boyunca görünür."
 }

@@ -90,6 +90,10 @@ CURATED_DECLS = {
     "CriteriaTriggers": [
         "public static <T> T register(T a0) { return null; }",
     ],
+    # Real 1.20.1: saveAdditional is a protected void, not an Object method.
+    "BlockEntity": [
+        "protected void saveAdditional(net.minecraft.nbt.CompoundTag a0) {}",
+    ],
     # Real 1.20.1 generic trigger surface used by com.mcsport.advancement.
     "SimpleCriterionTrigger": [
         "public net.minecraft.resources.ResourceLocation getId() { return null; }",
@@ -1718,7 +1722,78 @@ def apply_curated_generics():
             open(path, "w").write(s2)
 
 
+def force_block_entity_renderer_contract():
+    """Rewrite the BER stubs to their real 1.20.1 interface contract.
+
+    The generic shell generator emits BlockEntityRenderer as a plain class and
+    parks Context#getFont on the wrong outer class, which breaks the mod's
+    scoreboard BER. The real API is a generic renderer interface plus a
+    provider interface whose nested Context exposes the Font.
+    """
+    ber_dir = os.path.join(STUBS, "net", "minecraft", "client", "renderer", "blockentity")
+    renderer = os.path.join(ber_dir, "BlockEntityRenderer.java")
+    if os.path.exists(renderer):
+        open(renderer, "w").write(
+            "package net.minecraft.client.renderer.blockentity;\n\n"
+            "public interface BlockEntityRenderer<T0> {\n"
+            "    void render(T0 a0, float a1, com.mojang.blaze3d.vertex.PoseStack a2,\n"
+            "                 net.minecraft.client.renderer.MultiBufferSource a3, int a4, int a5);\n"
+            "}\n")
+    provider = os.path.join(ber_dir, "BlockEntityRendererProvider.java")
+    if os.path.exists(provider):
+        open(provider, "w").write(
+            "package net.minecraft.client.renderer.blockentity;\n\n"
+            "public interface BlockEntityRendererProvider<T0> {\n"
+            "    BlockEntityRenderer<T0> create(Context a0);\n\n"
+            "    public static class Context {\n"
+            "        public net.minecraft.client.gui.Font getFont() { return null; }\n"
+            "    }\n"
+            "}\n")
+    event = os.path.join(STUBS, "net", "minecraftforge", "client", "event",
+                         "EntityRenderersEvent.java")
+    if os.path.exists(event):
+        s = open(event).read()
+        generic_method = (
+            "        public <T0 extends net.minecraft.world.level.block.entity.BlockEntity> "
+            "void registerBlockEntityRenderer(\n"
+            "                net.minecraft.world.level.block.entity.BlockEntityType<? extends T0> a0,\n"
+            "                net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider<T0> a1) {}\n")
+        # Remove any earlier (wrong) placement on the outer class and the
+        # inferred all-Object overload that shadows the real generic method.
+        s = re.sub(r"\n\s*public <T0 extends [^{]*registerBlockEntityRenderer\([^}]*\}\n",
+                   "\n", s)
+        s = re.sub(r"\s*public java\.lang\.Object registerBlockEntityRenderer\(Object a0, Object a1\) \{ return null; \}\n?",
+                   "\n", s)
+        # The real method lives on the nested RegisterRenderers class.
+        if "registerBlockEntityRenderer" not in s and "class RegisterRenderers" in s:
+            marker = "class RegisterRenderers {"
+            s = s.replace(marker, marker + "\n" + generic_method, 1)
+        open(event, "w").write(s)
+
+    # saveAdditional is a protected void in 1.20.1; the shell infers Object.
+    block_entity = os.path.join(STUBS, "net", "minecraft", "world", "level",
+                                "block", "entity", "BlockEntity.java")
+    if os.path.exists(block_entity):
+        s = open(block_entity).read()
+        s = re.sub(r"public java\.lang\.Object saveAdditional\(([^)]*)\) \{ return null; \}",
+                   r"protected void saveAdditional(\1) {}", s)
+        open(block_entity, "w").write(s)
+
+    # Font.DisplayMode.NORMAL must be a static enum-style constant.
+    font = os.path.join(STUBS, "net", "minecraft", "client", "gui", "Font.java")
+    if os.path.exists(font):
+        s = open(font).read()
+        s = re.sub(r"public (?:static )?(?:final )?net\.minecraft\.client\.gui\.Font\.DisplayMode NORMAL;",
+                   "public static net.minecraft.client.gui.Font.DisplayMode NORMAL;", s)
+        if "DisplayMode NORMAL;" not in s and "class DisplayMode" in s:
+            s = s.replace("public static class DisplayMode {",
+                          "public static class DisplayMode {\n"
+                          "        public static net.minecraft.client.gui.Font.DisplayMode NORMAL;", 1)
+        open(font, "w").write(s)
+
+
 def normalize_stubs():
+    force_block_entity_renderer_contract()
     drop_stray_stubs()
     materialize_top_enums()
     drop_bad_constant_classes()
