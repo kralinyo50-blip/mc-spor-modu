@@ -1,9 +1,11 @@
 package com.mcsport.client;
 
 import com.mcsport.McSport;
+import com.mcsport.client.renderer.ScoreboardRenderer;
 import com.mcsport.client.renderer.SeatRenderer;
 import com.mcsport.client.renderer.SoccerBallRenderer;
 import com.mcsport.client.renderer.SoccerNpcRenderer;
+import com.mcsport.registry.ModBlockEntities;
 import com.mcsport.registry.ModBlocks;
 import com.mcsport.registry.ModEntities;
 import net.minecraft.client.renderer.RenderType;
@@ -28,6 +30,8 @@ public class ClientSetup {
         event.registerEntityRenderer(ModEntities.SOCCER_BALL.get(), SoccerBallRenderer::new);
         event.registerEntityRenderer(ModEntities.SEAT.get(), SeatRenderer::new);
         event.registerEntityRenderer(ModEntities.SOCCER_NPC.get(), SoccerNpcRenderer::new);
+        event.registerBlockEntityRenderer(ModBlockEntities.SCOREBOARD.get(),
+                ScoreboardRenderer::new);
     }
 
     @SubscribeEvent

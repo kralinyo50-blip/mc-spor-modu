@@ -316,9 +316,9 @@ public class MatchScreen extends Screen {
                 Component.translatable("field_size.mcsport." + size.getTranslationSuffix())
                         .append(" " + size.getWidth() + "x" + size.getLength())));
         homeClubButton.setMessage(option("gui.mcsport.opt.home_club",
-                Component.translatable(draft.getHomeClub().translationKey())));
+                draft.homeDisplayName()));
         awayClubButton.setMessage(option("gui.mcsport.opt.away_club",
-                Component.translatable(draft.getAwayClub().translationKey())));
+                draft.awayDisplayName()));
         teamSizeButton.setMessage(option("gui.mcsport.opt.team_size",
                 Component.literal(draft.getTeamSize() + "v" + draft.getTeamSize())));
         difficultyButton.setMessage(option("gui.mcsport.opt.difficulty",

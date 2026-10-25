@@ -23,9 +23,22 @@ public final class FormationLayout {
      */
     public static Vec3 homePosition(BlockPos fieldCenter, FieldSize size, Formation formation,
                                     Team team, int index, int teamSize, boolean keeper) {
+        return homePosition(fieldCenter, size, formation, team, index, teamSize, keeper, false);
+    }
+
+    /**
+     * Same as {@link #homePosition} but mirrors every position across the
+     * centre line after the half-time side swap.
+     */
+    public static Vec3 homePosition(BlockPos fieldCenter, FieldSize size, Formation formation,
+                                    Team team, int index, int teamSize, boolean keeper,
+                                    boolean sidesSwapped) {
         int halfW = size.getWidth() / 2;
         int halfL = size.getLength() / 2;
         int inward = team == Team.RED ? 1 : -1;
+        if (sidesSwapped) {
+            inward = -inward;
+        }
         int goalZ = fieldCenter.getZ() - inward * halfL;
 
         if (keeper) {

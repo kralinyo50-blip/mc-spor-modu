@@ -6,6 +6,7 @@ import com.mcsport.entity.SoccerNpcEntity;
 import com.mcsport.network.ModNetwork;
 import com.mcsport.network.network_packet.MatchStateS2C;
 import com.mcsport.registry.ModEntities;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
@@ -51,6 +52,14 @@ public class MatchManager extends SavedData {
     private int redScore;
     private int blueScore;
     private int remainingSeconds;
+    // Current half (1 or 2). A full match always has two halves of the same
+    // configured length; half-time flips sidesSwapped so the teams attack
+    // the opposite goal after the break.
+    private int half = 1;
+    private boolean sidesSwapped;
+    private int halfTimeTicks;
+    private int configuredHalfSeconds;
+    private static final int HALF_TIME_TICKS = 200;
     private final MatchSettings settings = new MatchSettings();
     private final Map<UUID, Team> teams = new HashMap<>();
     private final Set<UUID> keepers = new HashSet<>();
@@ -153,6 +162,10 @@ public class MatchManager extends SavedData {
             tickCeremony(server);
             return;
         }
+        if (state == MatchState.HALF_TIME) {
+            tickHalfTime(server);
+            return;
+        }
         if (state != MatchState.RUNNING) {
             return;
         }
@@ -170,6 +183,11 @@ public class MatchManager extends SavedData {
     }
 
     private void handleClockEnd(MinecraftServer server) {
+        // End of the first half: enter the intermission instead of finishing.
+        if (half == 1) {
+            beginHalfTime(server);
+            return;
+        }
         if (redScore == blueScore && settings.getDrawRule() == DrawRule.EXTRA_TIME && !extraTimeUsed) {
             extraTimeUsed = true;
             remainingSeconds = MatchSettings.EXTRA_TIME_SECONDS;
@@ -180,6 +198,76 @@ public class MatchManager extends SavedData {
             ceremonyTicks = SoccerNpcEntity.WAVE_DURATION_TICKS + 35;
             awardWinAdvancements(server);
             setDirty();
+        }
+    }
+
+    /** Freezes the clock for a short break and announces the half-time score. */
+    private void beginHalfTime(MinecraftServer server) {
+        state = MatchState.HALF_TIME;
+        halfTimeTicks = HALF_TIME_TICKS;
+        // The client HUD renders remainingSeconds, so mirror the break
+        // countdown there until the second half restarts the match clock.
+        remainingSeconds = HALF_TIME_TICKS / 20;
+        broadcast(server);
+        server.getPlayerList().broadcastSystemMessage(
+                Component.translatable("message.mcsport.half_time",
+                        redScore, blueScore).withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD),
+                false);
+        setDirty();
+    }
+
+    private void tickHalfTime(MinecraftServer server) {
+        if (halfTimeTicks <= 0) {
+            return;
+        }
+        halfTimeTicks--;
+        // Keep the on-screen break countdown in sync once per second.
+        int breakSeconds = halfTimeTicks / 20;
+        if (breakSeconds != remainingSeconds) {
+            remainingSeconds = breakSeconds;
+            broadcast(server);
+        }
+        if (halfTimeTicks == 0) {
+            beginSecondHalf(server);
+        }
+        setDirty();
+    }
+
+    /** Swaps sides, rebuilds the squads on their new halves and restarts play. */
+    private void beginSecondHalf(MinecraftServer server) {
+        ServerLevel level = server.overworld();
+        sidesSwapped = !sidesSwapped;
+        half = 2;
+        remainingSeconds = configuredHalfSeconds > 0
+                ? configuredHalfSeconds : settings.getHalfLengthSeconds();
+        tickCounter = 0;
+        state = MatchState.RUNNING;
+        // Fresh kick-off: squads respawn facing their new goals and any ball
+        // on the pitch is returned to the centre spot.
+        populateNpcs(level, server);
+        returnBallToCentre(level);
+        broadcast(server);
+        server.getPlayerList().broadcastSystemMessage(
+                Component.translatable("message.mcsport.second_half")
+                        .withStyle(ChatFormatting.YELLOW),
+                false);
+        setDirty();
+    }
+
+    /** Teleports the pitch ball back to the centre spot, spawning one if absent. */
+    private void returnBallToCentre(ServerLevel level) {
+        if (fieldCenter == null) {
+            return;
+        }
+        AABB searchArea = new AABB(fieldCenter).inflate(96.0D);
+        java.util.List<SoccerBallEntity> balls =
+                level.getEntitiesOfClass(SoccerBallEntity.class, searchArea);
+        if (balls.isEmpty()) {
+            ensureKickoffBall(level);
+            return;
+        }
+        for (SoccerBallEntity ball : balls) {
+            ball.resetTo(fieldCenter);
         }
     }
 
@@ -262,6 +350,8 @@ public class MatchManager extends SavedData {
         settings.setAwayFormation(incoming.getAwayFormation());
         settings.setHomeClub(incoming.getHomeClub());
         settings.setAwayClub(incoming.getAwayClub());
+        settings.setHomeCustomName(incoming.getHomeCustomName());
+        settings.setAwayCustomName(incoming.getAwayCustomName());
         if (state == MatchState.IDLE) {
             remainingSeconds = settings.getHalfLengthSeconds();
         }
@@ -349,8 +439,13 @@ public class MatchManager extends SavedData {
         }
         int configured = seconds > 0 ? seconds : settings.getHalfLengthSeconds();
         remainingSeconds = Math.max(MIN_DURATION, Math.min(MAX_DURATION, configured));
+        // Each half lasts this long; the same length restarts after the break.
+        configuredHalfSeconds = remainingSeconds;
         tickCounter = 0;
         extraTimeUsed = false;
+        half = 1;
+        sidesSwapped = false;
+        halfTimeTicks = 0;
         state = MatchState.RUNNING;
         setDirty();
     }
@@ -376,6 +471,10 @@ public class MatchManager extends SavedData {
         remainingSeconds = settings.getHalfLengthSeconds();
         tickCounter = 0;
         extraTimeUsed = false;
+        half = 1;
+        sidesSwapped = false;
+        halfTimeTicks = 0;
+        configuredHalfSeconds = 0;
         ceremonyStarted = false;
         ceremonyTicks = 0;
         redChaser = null;
@@ -398,6 +497,11 @@ public class MatchManager extends SavedData {
         }
         int halfL = settings.getFieldSize().getLength() / 2;
         int offsetZ = team == Team.RED ? -halfL : halfL;
+        // After the half-time swap each side defends the physical goal it
+        // attacked in the first half.
+        if (sidesSwapped) {
+            offsetZ = -offsetZ;
+        }
         // Basketball hoops are elevated structures; football goals sit on the ground.
         int lift = settings.getSport() == BallType.BASKETBALL ? 3 : 0;
         return new BlockPos(fieldCenter.getX(), fieldCenter.getY() + lift, fieldCenter.getZ() + offsetZ);
@@ -479,7 +583,7 @@ public class MatchManager extends SavedData {
             boolean keeper = useBotKeeper && i == 0;
             int number = i + 1;
             Vec3 home = FormationLayout.homePosition(fieldCenter, settings.getFieldSize(),
-                    formation, team, i, settings.getTeamSize(), keeper);
+                    formation, team, i, settings.getTeamSize(), keeper, sidesSwapped);
             SoccerNpcEntity npc = ModEntities.SOCCER_NPC.get().create(level);
             if (npc == null) {
                 continue;
@@ -922,6 +1026,25 @@ public class MatchManager extends SavedData {
         return "en".equals(language);
     }
 
+    /** True after the half-time swap; flips every derived goal/home position. */
+    public boolean isSidesSwapped() {
+        return sidesSwapped;
+    }
+
+    public int getHalf() {
+        return half;
+    }
+
+    /** Sets (or clears, when blank) the custom display name of one side. */
+    public void renameClub(boolean home, String name) {
+        if (home) {
+            settings.setHomeCustomName(name);
+        } else {
+            settings.setAwayCustomName(name);
+        }
+        setDirty();
+    }
+
     /**
      * Records the preferred UI language from a client-synced locale code
      * ("tr_tr", "en_us", ...). Anything starting with "tr" picks Turkish,
@@ -1024,6 +1147,10 @@ public class MatchManager extends SavedData {
         tag.putInt("Remaining", remainingSeconds);
         tag.putBoolean("FieldBuilt", fieldBuilt);
         tag.putBoolean("ExtraTimeUsed", extraTimeUsed);
+        tag.putInt("Half", half);
+        tag.putBoolean("SidesSwapped", sidesSwapped);
+        tag.putInt("HalfTimeTicks", halfTimeTicks);
+        tag.putInt("ConfiguredHalfSeconds", configuredHalfSeconds);
         if (fieldCenter != null) {
             tag.putLong("FieldCenter", fieldCenter.asLong());
         }
@@ -1052,6 +1179,8 @@ public class MatchManager extends SavedData {
         value.putByte("AwayFormation", (byte) settings.getAwayFormation().ordinal());
         value.putByte("HomeClub", (byte) settings.getHomeClub().ordinal());
         value.putByte("AwayClub", (byte) settings.getAwayClub().ordinal());
+        value.putString("HomeCustomName", settings.getHomeCustomName());
+        value.putString("AwayCustomName", settings.getAwayCustomName());
         return value;
     }
 
@@ -1068,6 +1197,12 @@ public class MatchManager extends SavedData {
                 ? tag.getInt("Remaining") : manager.settings.getHalfLengthSeconds();
         manager.fieldBuilt = tag.getBoolean("FieldBuilt");
         manager.extraTimeUsed = tag.getBoolean("ExtraTimeUsed");
+        // Older saves predate the two-half system; defaults are first half,
+        // unswapped sides and no running intermission.
+        manager.half = tag.contains("Half") ? Math.max(1, Math.min(2, tag.getInt("Half"))) : 1;
+        manager.sidesSwapped = tag.getBoolean("SidesSwapped");
+        manager.halfTimeTicks = Math.max(0, tag.getInt("HalfTimeTicks"));
+        manager.configuredHalfSeconds = Math.max(0, tag.getInt("ConfiguredHalfSeconds"));
         if (tag.contains("FieldCenter")) {
             manager.fieldCenter = BlockPos.of(tag.getLong("FieldCenter"));
         }
@@ -1101,6 +1236,12 @@ public class MatchManager extends SavedData {
         }
         if (value.contains("AwayClub")) {
             target.setAwayClub(Club.byOrdinal(value.getByte("AwayClub")));
+        }
+        if (value.contains("HomeCustomName")) {
+            target.setHomeCustomName(value.getString("HomeCustomName"));
+        }
+        if (value.contains("AwayCustomName")) {
+            target.setAwayCustomName(value.getString("AwayCustomName"));
         }
     }
 
