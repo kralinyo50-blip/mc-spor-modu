@@ -1,6 +1,7 @@
 package com.mcsport.network;
 
 import com.mcsport.McSport;
+import com.mcsport.network.network_packet.AdBoardTextC2S;
 import com.mcsport.network.network_packet.BuildFieldC2S;
 import com.mcsport.network.network_packet.JoinTeamC2S;
 import com.mcsport.network.network_packet.LanguageC2S;
@@ -20,9 +21,9 @@ import net.minecraftforge.network.simple.SimpleChannel;
  */
 public final class ModNetwork {
 
-    // "7" adds half-time state plus club display names in the snapshots;
-    // client and server accept only this exact version.
-    private static final String PROTOCOL_VERSION = "7";
+    // "8" adds fun mode, bot fatigue and the ad-board text packet; client
+    // and server accept only this exact version.
+    private static final String PROTOCOL_VERSION = "8";
 
     public static SimpleChannel CHANNEL;
 
@@ -78,6 +79,11 @@ public final class ModNetwork {
                     .encoder(LanguageC2S::encode)
                     .decoder(LanguageC2S::new)
                     .consumerMainThread(LanguageC2S::handle)
+                    .add();
+            CHANNEL.messageBuilder(AdBoardTextC2S.class, id++)
+                    .encoder(AdBoardTextC2S::encode)
+                    .decoder(AdBoardTextC2S::new)
+                    .consumerMainThread(AdBoardTextC2S::handle)
                     .add();
         });
     }

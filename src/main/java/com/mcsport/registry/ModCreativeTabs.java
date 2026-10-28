@@ -45,6 +45,7 @@ public class ModCreativeTabs {
                         output.accept(ModBlocks.STADIUM_ROOF.get());
                         output.accept(ModBlocks.STADIUM_LAMP.get());
                         output.accept(ModBlocks.TROPHY_BLOCK.get());
+                        output.accept(ModBlocks.AD_BOARD.get());
                     })
                     .build());
 

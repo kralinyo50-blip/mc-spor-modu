@@ -166,5 +166,21 @@
   "guide.mcsport.p9.title": "Devre arası",
   "guide.mcsport.p9.body": "Maçlar artık iki yarıdır. İlk yarı\nbitince 10 saniyelik devre arası girilir;\ntakımlar kenara çekilir, sonra taraf\ndeğiştirip ikinci yarı başlar. Skor ve\nsüre HUD ile canlı tabelada görünür.",
   "guide.mcsport.p10.title": "Kendi kulübün",
-  "guide.mcsport.p10.body": "Takımlara kendi adını verebilirsin:\n/mcsport clubname home <ad>\n/mcsport clubname away <ad>\nTemizlemek için: clubname clear\nÖzel ad tabelada, kurulum ekranında\nve maç boyunca görünür."
+  "guide.mcsport.p10.body": "Takımlara kendi adını verebilirsin:\n/mcsport clubname home <ad>\n/mcsport clubname away <ad>\nTemizlemek için: clubname clear\nÖzel ad tabelada, kurulum ekranında\nve maç boyunca görünür.",
+  "fun_mode.mcsport.off": "Kapalı",
+  "fun_mode.mcsport.low_gravity": "Düşük Yerçekimi",
+  "fun_mode.mcsport.big_ball": "Büyük Top",
+  "fun_mode.mcsport.super_shot": "Süper Şut",
+  "fun_mode.mcsport.party": "Parti Modu",
+  "gui.mcsport.opt.fun_mode": "Eğlence modu",
+  "gui.mcsport.opt.fatigue": "Bot yorgunluğu",
+  "gui.mcsport.opt.on": "Açık",
+  "gui.mcsport.opt.off": "Kapalı",
+  "message.mcsport.party_gravity": "Parti olayı: düşük yerçekimi!",
+  "message.mcsport.party_super_shot": "Parti olayı: süper şutlar!",
+  "message.mcsport.party_speed": "Parti olayı: bot hız patlaması!",
+  "block.mcsport.ad_board": "Reklam Panosu",
+  "screen.mcsport.ad_board.title": "Reklam Panosunu Düzenle",
+  "screen.mcsport.ad_board.text": "Pano metni",
+  "screen.mcsport.ad_board.save": "Kaydet"
 }

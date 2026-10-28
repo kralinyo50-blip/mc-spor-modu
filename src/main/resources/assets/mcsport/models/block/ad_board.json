@@ -1,0 +1,21 @@
+{
+  "parent": "block/block",
+  "textures": {
+    "board": "mcsport:block/ad_board",
+    "particle": "mcsport:block/ad_board"
+  },
+  "elements": [
+    {
+      "from": [1, 2, 6],
+      "to": [15, 14, 10],
+      "faces": {
+        "north": {"texture": "#board"},
+        "south": {"texture": "#board"},
+        "east": {"texture": "#board"},
+        "west": {"texture": "#board"},
+        "up": {"texture": "#board"},
+        "down": {"texture": "#board"}
+      }
+    }
+  ]
+}

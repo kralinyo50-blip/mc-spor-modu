@@ -1,6 +1,7 @@
 package com.mcsport.registry;
 
 import com.mcsport.McSport;
+import com.mcsport.block.AdBoardBlock;
 import com.mcsport.block.ArtificialTurfBlock;
 import com.mcsport.block.FieldLineBlock;
 import com.mcsport.block.GoalNetBlock;
@@ -145,6 +146,14 @@ public class ModBlocks {
             () -> new Block(BlockBehaviour.Properties.of()
                     .mapColor(MapColor.GOLD)
                     .strength(1.2F)
+                    .sound(SoundType.METAL)
+                    .noOcclusion()));
+
+    /** Thin stadium advertising panel with custom text edited by operators. */
+    public static final RegistryObject<Block> AD_BOARD = BLOCKS.register("ad_board",
+            () -> new AdBoardBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.COLOR_BLUE)
+                    .strength(1.0F)
                     .sound(SoundType.METAL)
                     .noOcclusion()));
 

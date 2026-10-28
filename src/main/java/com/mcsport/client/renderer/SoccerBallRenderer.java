@@ -49,8 +49,9 @@ public class SoccerBallRenderer extends EntityRenderer<SoccerBallEntity> {
         poseStack.pushPose();
         // Sphere model is centred on the origin; lift its centre to the
         // collision-radius height, then shrink the native 0.5 sphere to the
-        // smaller physics radius so visual size matches the hitbox.
-        poseStack.translate(0.0D, SoccerBallEntity.BALL_RADIUS, 0.0D);
+        // smaller physics radius so visual size matches the hitbox. The fun
+        // big-ball modifier grows both through effectiveRadius().
+        poseStack.translate(0.0D, entity.effectiveRadius(), 0.0D);
 
         float yaw = entity.getVisualYaw();
         float roll = entity.getVisualRoll(partialTick);
@@ -59,7 +60,7 @@ public class SoccerBallRenderer extends EntityRenderer<SoccerBallEntity> {
         // JOML 1.10.5 (MC 1.20.1): setAngleAxis takes radians; same pattern as BoatRenderer.
         poseStack.mulPose(new Quaternionf().setAngleAxis(
                 (float) Math.toRadians(roll), axisX, 0.0F, axisZ));
-        float scale = (float) (SoccerBallEntity.BALL_RADIUS / BallModel.NATIVE_RADIUS);
+        float scale = (float) (entity.effectiveRadius() / BallModel.NATIVE_RADIUS);
         poseStack.scale(scale, scale, scale);
 
         VertexConsumer consumer = bufferSource.getBuffer(RenderType.entityCutoutNoCull(texture));

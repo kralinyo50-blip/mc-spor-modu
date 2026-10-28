@@ -24,6 +24,10 @@ public class MatchSettings {
     // themselves stay fixed, only their name, kit and seat colours change.
     private Club homeClub = Club.RED;
     private Club awayClub = Club.BLUE;
+    // Optional fun modifier and the bot-fatigue toggle. Both are setup-only
+    // options and stay fixed while a match is running.
+    private FunMode funMode = FunMode.OFF;
+    private boolean fatigue = false;
     // Optional operator-chosen display names. Blank means the translated
     // club enum name is shown. Length is clamped on every setter.
     public static final int MAX_CLUB_NAME = 24;
@@ -137,6 +141,22 @@ public class MatchSettings {
         return trimmed;
     }
 
+    public FunMode getFunMode() {
+        return funMode;
+    }
+
+    public void setFunMode(FunMode funMode) {
+        this.funMode = funMode == null ? FunMode.OFF : funMode;
+    }
+
+    public boolean isFatigue() {
+        return fatigue;
+    }
+
+    public void setFatigue(boolean fatigue) {
+        this.fatigue = fatigue;
+    }
+
     public int getHalfLengthSeconds() {
         return halfMinutes * 60;
     }
@@ -169,6 +189,8 @@ public class MatchSettings {
         copy.awayClub = awayClub;
         copy.homeCustomName = homeCustomName;
         copy.awayCustomName = awayCustomName;
+        copy.funMode = funMode;
+        copy.fatigue = fatigue;
         return copy;
     }
 }

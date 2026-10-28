@@ -1,0 +1,20 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "mcsport:block/ad_board",
+      "y": 0
+    },
+    "facing=east": {
+      "model": "mcsport:block/ad_board",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "mcsport:block/ad_board",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "mcsport:block/ad_board",
+      "y": 270
+    }
+  }
+}

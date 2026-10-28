@@ -857,7 +857,7 @@ public class NpcPlayGoal extends Goal {
             npc.setInWall(true);
             Vec3 slot = manager.getWallPosition(wallIndex, wallCount);
             if (npc.distanceToSqr(slot.x, npc.getY(), slot.z) > 0.6D) {
-                npc.getNavigation().moveTo(slot.x, slot.y, slot.z, 1.15D);
+                npc.getNavigation().moveTo(slot.x, slot.y, slot.z, effectiveSpeed(1.15D));
             } else {
                 npc.getNavigation().stop();
             }
@@ -964,6 +964,17 @@ public class NpcPlayGoal extends Goal {
         }
     }
 
+    /**
+     * Base navigation speed after the bot's fatigue and any fun-mode party
+     * speed burst are applied. Every navigation call goes through this so
+     * fatigue cannot be bypassed by an individual behaviour branch.
+     */
+    private double effectiveSpeed(double base) {
+        MatchManager manager = MatchManager.get(
+                (net.minecraft.server.level.ServerLevel) npc.level());
+        return base * npc.getFatigueMultiplier() * manager.getBotSpeedFactor();
+    }
+
     private void moveToward(Vec3 target, double speed) {
         if (npc.distanceToSqr(target.x, target.y, target.z) > 1.2D) {
             // Re-issue a path only when the target moved meaningfully or the
@@ -971,7 +982,7 @@ public class NpcPlayGoal extends Goal {
             // rolling ball produced visible stop-and-go stuttering.
             if (lastPathTarget == null || npc.getNavigation().isDone()
                     || lastPathTarget.distanceToSqr(target) > 2.25D) {
-                npc.getNavigation().moveTo(target.x, target.y, target.z, speed);
+                npc.getNavigation().moveTo(target.x, target.y, target.z, effectiveSpeed(speed));
                 lastPathTarget = target;
             }
         } else {

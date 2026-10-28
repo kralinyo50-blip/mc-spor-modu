@@ -1,6 +1,7 @@
 package com.mcsport.client;
 
 import com.mcsport.McSport;
+import com.mcsport.client.renderer.AdBoardRenderer;
 import com.mcsport.client.renderer.ScoreboardRenderer;
 import com.mcsport.client.renderer.SeatRenderer;
 import com.mcsport.client.renderer.SoccerBallRenderer;
@@ -32,6 +33,8 @@ public class ClientSetup {
         event.registerEntityRenderer(ModEntities.SOCCER_NPC.get(), SoccerNpcRenderer::new);
         event.registerBlockEntityRenderer(ModBlockEntities.SCOREBOARD.get(),
                 ScoreboardRenderer::new);
+        event.registerBlockEntityRenderer(ModBlockEntities.AD_BOARD.get(),
+                AdBoardRenderer::new);
     }
 
     @SubscribeEvent

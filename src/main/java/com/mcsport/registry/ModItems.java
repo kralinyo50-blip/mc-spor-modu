@@ -73,6 +73,9 @@ public class ModItems {
     public static final RegistryObject<Item> TROPHY_BLOCK_ITEM =
             registerBlockItem("trophy_block", ModBlocks.TROPHY_BLOCK);
 
+    public static final RegistryObject<Item> AD_BOARD_ITEM =
+            registerBlockItem("ad_board", ModBlocks.AD_BOARD);
+
     private static RegistryObject<Item> registerBlockItem(String name, RegistryObject<Block> block) {
         return ITEMS.register(name, () -> new BlockItem(block.get(), new Item.Properties()));
     }

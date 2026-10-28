@@ -6,6 +6,7 @@ import com.mcsport.match.Club;
 import com.mcsport.match.DrawRule;
 import com.mcsport.match.FieldSize;
 import com.mcsport.match.Formation;
+import com.mcsport.match.FunMode;
 import com.mcsport.match.MatchDifficulty;
 import com.mcsport.match.MatchSettings;
 import com.mcsport.match.MatchState;
@@ -67,6 +68,8 @@ public class MatchStateS2C {
         value.setAwayClub(Club.byOrdinal(buffer.readByte()));
         value.setHomeCustomName(buffer.readUtf(MatchSettings.MAX_CLUB_NAME));
         value.setAwayCustomName(buffer.readUtf(MatchSettings.MAX_CLUB_NAME));
+        value.setFunMode(FunMode.byOrdinal(buffer.readByte()));
+        value.setFatigue(buffer.readBoolean());
         this.settings = value;
     }
 
@@ -90,6 +93,8 @@ public class MatchStateS2C {
         buffer.writeByte(settings.getAwayClub().ordinal());
         buffer.writeUtf(settings.getHomeCustomName(), MatchSettings.MAX_CLUB_NAME);
         buffer.writeUtf(settings.getAwayCustomName(), MatchSettings.MAX_CLUB_NAME);
+        buffer.writeByte(settings.getFunMode().ordinal());
+        buffer.writeBoolean(settings.isFatigue());
     }
 
     public void handle(Supplier<NetworkEvent.Context> contextSupplier) {

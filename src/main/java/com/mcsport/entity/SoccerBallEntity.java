@@ -48,9 +48,14 @@ public class SoccerBallEntity extends Entity {
 
     private static final EntityDataAccessor<Byte> DATA_BALL_TYPE =
             SynchedEntityData.defineId(SoccerBallEntity.class, EntityDataSerializers.BYTE);
+    /** Synched big-ball flag from the fun-mode setup option. */
+    private static final EntityDataAccessor<Byte> DATA_FUN_BIG =
+            SynchedEntityData.defineId(SoccerBallEntity.class, EntityDataSerializers.BYTE);
 
     /** Shared collision/render radius (0.44 block diameter). */
     public static final double BALL_RADIUS = 0.22D;
+    /** Size multiplier while the BIG_BALL fun modifier is active. */
+    public static final double BIG_BALL_SCALE = 1.6D;
     private static final double RESTITUTION_MIN = 0.42D;
     private static final int KICK_COOLDOWN_TICKS = 6;
 
@@ -91,6 +96,37 @@ public class SoccerBallEntity extends Entity {
     @Override
     protected void defineSynchedData() {
         this.entityData.define(DATA_BALL_TYPE, (byte) BallType.SOCCER.ordinal());
+        this.entityData.define(DATA_FUN_BIG, (byte) 0);
+    }
+
+    public boolean isFunBig() {
+        return this.entityData.get(DATA_FUN_BIG) != 0;
+    }
+
+    public void setFunBig(boolean big) {
+        if (isFunBig() != big) {
+            this.entityData.set(DATA_FUN_BIG, (byte) (big ? 1 : 0));
+            refreshDimensions();
+        }
+    }
+
+    /** 1.0 normally, {@link #BIG_BALL_SCALE} while the fun modifier is on. */
+    public double funScale() {
+        return isFunBig() ? BIG_BALL_SCALE : 1.0D;
+    }
+
+    /** Collision/render radius after the fun size modifier. */
+    public double effectiveRadius() {
+        return BALL_RADIUS * funScale();
+    }
+
+    private MatchManager matchManager() {
+        return MatchManager.get((ServerLevel) level());
+    }
+
+    /** Current super-shot multiplier (1.0 unless the fun modifier is on). */
+    private double shotFactor() {
+        return matchManager().getShotFactor();
     }
 
     public BallType getBallType() {
@@ -111,6 +147,11 @@ public class SoccerBallEntity extends Entity {
     }
 
     private void serverTick() {
+        if (tickCount == 1) {
+            // The fun-mode size flag is fixed for the match; read it once so
+            // clients get it through the synched entity data automatically.
+            setFunBig(MatchManager.get((ServerLevel) level()).isBigBall());
+        }
         if (kickCooldown > 0) {
             kickCooldown--;
         }
@@ -124,7 +165,8 @@ public class SoccerBallEntity extends Entity {
         if (this.isInWater()) {
             setDeltaMovement(getDeltaMovement().scale(0.85D).add(0.0D, 0.04D, 0.0D));
         } else {
-            setDeltaMovement(getDeltaMovement().add(0.0D, -getBallType().getGravity(), 0.0D));
+            setDeltaMovement(getDeltaMovement().add(0.0D,
+                    -getBallType().getGravity() * matchManager().getGravityFactor(), 0.0D));
         }
         applySpin();
         moveControlled();
@@ -259,7 +301,7 @@ public class SoccerBallEntity extends Entity {
             double yawRad = Math.toRadians(entity.getYRot());
             double forwardX = -Math.sin(yawRad);
             double forwardZ = Math.cos(yawRad);
-            double speed = 0.55D * power;
+            double speed = 0.55D * power * shotFactor();
             Vec3 impulse = new Vec3(forwardX * speed,
                     entity.isShiftKeyDown() ? 0.12D : 0.32D * power,
                     forwardZ * speed);
@@ -322,7 +364,7 @@ public class SoccerBallEntity extends Entity {
         }
         Vec3 look = player.getLookAngle();
         double clamped = Mth.clamp(power, 0.1F, 1.5F);
-        double speed = 0.55D + clamped * 1.35D;
+        double speed = (0.55D + clamped * 1.35D) * shotFactor();
         double upward = 0.22D + Math.max(0.0D, look.y) * 0.45D;
         setDeltaMovement(look.x * speed, upward, look.z * speed);
         visualYaw = player.getYRot();
@@ -339,7 +381,8 @@ public class SoccerBallEntity extends Entity {
             return;
         }
         Vec3 look = player.getLookAngle();
-        setDeltaMovement(look.x * 0.75D, 0.18D, look.z * 0.75D);
+        double factor = shotFactor();
+        setDeltaMovement(look.x * 0.75D * factor, 0.18D, look.z * 0.75D * factor);
         lastPlayerKicker = player.getUUID();
         visualYaw = player.getYRot();
         applyPlayerSpin(player);
@@ -377,7 +420,8 @@ public class SoccerBallEntity extends Entity {
             return;
         }
         Vec3 dir = direction.normalize();
-        setDeltaMovement(dir.x * speed, upward + Math.max(0.0D, -dir.y) * 0.2D, dir.z * speed);
+        double boosted = speed * shotFactor();
+        setDeltaMovement(dir.x * boosted, upward + Math.max(0.0D, -dir.y) * 0.2D, dir.z * boosted);
         visualYaw = mob.getYRot();
         // Bot strikes are straight: do not inherit curl from a player's shot.
         spin = 0.0F;
@@ -404,7 +448,8 @@ public class SoccerBallEntity extends Entity {
                     Math.cos(Math.toRadians(mob.getYRot())));
         }
         Vec3 dir = horizontal.normalize();
-        setDeltaMovement(dir.x * speed, arc, dir.z * speed);
+        double boosted = speed * shotFactor();
+        setDeltaMovement(dir.x * boosted, arc, dir.z * boosted);
         visualYaw = mob.getYRot();
         spin = 0.0F;
         kickCooldown = 10;
@@ -475,7 +520,7 @@ public class SoccerBallEntity extends Entity {
                     .map(shape -> shape.bounds().minY).filter(y -> y <= current.maxY)
                     .max(Double::compare).orElse(Double.NEGATIVE_INFINITY);
             if (floor != Double.NEGATIVE_INFINITY) {
-                setPos(getX(), floor + BALL_RADIUS, getZ());
+                setPos(getX(), floor + effectiveRadius(), getZ());
                 if (Math.abs(movement.y) > RESTITUTION_MIN) {
                     setDeltaMovement(getDeltaMovement().x,
                             -movement.y * getBallType().getBounceDamping(), getDeltaMovement().z);
@@ -496,7 +541,7 @@ public class SoccerBallEntity extends Entity {
                     .map(shape -> shape.bounds().maxY).filter(y -> y >= current.minY)
                     .min(Double::compare).orElse(Double.POSITIVE_INFINITY);
             if (ceiling != Double.POSITIVE_INFINITY) {
-                setPos(getX(), ceiling - BALL_RADIUS, getZ());
+                setPos(getX(), ceiling - effectiveRadius(), getZ());
                 setDeltaMovement(getDeltaMovement().x,
                         -movement.y * getBallType().getBounceDamping(), getDeltaMovement().z);
                 movement = getDeltaMovement();
@@ -633,9 +678,10 @@ public class SoccerBallEntity extends Entity {
 
     @Override
     protected AABB makeBoundingBox() {
+        double radius = effectiveRadius();
         return new AABB(
-                getX() - BALL_RADIUS, getY() - BALL_RADIUS, getZ() - BALL_RADIUS,
-                getX() + BALL_RADIUS, getY() + BALL_RADIUS, getZ() + BALL_RADIUS);
+                getX() - radius, getY() - radius, getZ() - radius,
+                getX() + radius, getY() + radius, getZ() + radius);
     }
 
     @Override
