@@ -1,6 +1,7 @@
 package com.mcsport.registry;
 
 import com.mcsport.McSport;
+import com.mcsport.blockentity.AdBoardBlockEntity;
 import com.mcsport.blockentity.GoalBlockEntity;
 import com.mcsport.blockentity.ScoreboardBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -22,6 +23,11 @@ public class ModBlockEntities {
             BLOCK_ENTITIES.register("scoreboard",
                     () -> BlockEntityType.Builder.of(ScoreboardBlockEntity::new,
                             ModBlocks.SCOREBOARD.get()).build(null));
+
+    public static final RegistryObject<BlockEntityType<AdBoardBlockEntity>> AD_BOARD =
+            BLOCK_ENTITIES.register("ad_board",
+                    () -> BlockEntityType.Builder.of(AdBoardBlockEntity::new,
+                            ModBlocks.AD_BOARD.get()).build(null));
 
     private ModBlockEntities() {
     }

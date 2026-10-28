@@ -6,6 +6,7 @@ import com.mcsport.match.Club;
 import com.mcsport.match.DrawRule;
 import com.mcsport.match.FieldSize;
 import com.mcsport.match.Formation;
+import com.mcsport.match.FunMode;
 import com.mcsport.match.MatchDifficulty;
 import com.mcsport.match.MatchSettings;
 import com.mcsport.match.MatchState;
@@ -49,6 +50,8 @@ public class MatchScreen extends Screen {
     private Button awayFormButton;
     private Button homeClubButton;
     private Button awayClubButton;
+    private Button funModeButton;
+    private Button fatigueButton;
     private Button startButton;
     private Button buildButton;
     private Button joinRedButton;
@@ -73,7 +76,8 @@ public class MatchScreen extends Screen {
         draft = ClientMatchData.INSTANCE.getSettings().copy();
         int left = width / 2 - COL_WIDTH - GAP / 2;
         int right = width / 2 + GAP / 2;
-        int top = height / 2 - 120;
+        // 11 setting rows now: pulled up from -120 so the panel still fits.
+        int top = height / 2 - 132;
         int row = 0;
 
         // Row 1: sport and field size.
@@ -118,7 +122,14 @@ public class MatchScreen extends Screen {
                 .bounds(right, top + row * ROW_STEP, COL_WIDTH, ROW_HEIGHT).build());
         row++;
 
-        // Row 7: join home / away.
+        // Row 7: fun mode and bot fatigue toggles.
+        funModeButton = addRenderableWidget(Button.builder(Component.empty(), b -> cycleFunMode())
+                .bounds(left, top + row * ROW_STEP, COL_WIDTH, ROW_HEIGHT).build());
+        fatigueButton = addRenderableWidget(Button.builder(Component.empty(), b -> toggleFatigue())
+                .bounds(right, top + row * ROW_STEP, COL_WIDTH, ROW_HEIGHT).build());
+        row++;
+
+        // Row 8: join home / away.
         joinRedButton = addRenderableWidget(Button.builder(
                         Component.translatable("gui.mcsport.join_red"),
                         b -> requestJoin(Team.RED, false))
@@ -249,6 +260,17 @@ public class MatchScreen extends Screen {
         sendSettings();
     }
 
+    private void cycleFunMode() {
+        FunMode next = hasShiftDown() ? draft.getFunMode().previous() : draft.getFunMode().next();
+        draft.setFunMode(next);
+        sendSettings();
+    }
+
+    private void toggleFatigue() {
+        draft.setFatigue(!draft.isFatigue());
+        sendSettings();
+    }
+
     private void sendSettings() {
         ModNetwork.CHANNEL.sendToServer(new MatchSettingsC2S(draft));
     }
@@ -319,6 +341,11 @@ public class MatchScreen extends Screen {
                 draft.homeDisplayName()));
         awayClubButton.setMessage(option("gui.mcsport.opt.away_club",
                 draft.awayDisplayName()));
+        funModeButton.setMessage(option("gui.mcsport.opt.fun_mode",
+                Component.translatable(draft.getFunMode().translationKey())));
+        fatigueButton.setMessage(option("gui.mcsport.opt.fatigue",
+                Component.translatable(draft.isFatigue()
+                        ? "gui.mcsport.opt.on" : "gui.mcsport.opt.off")));
         teamSizeButton.setMessage(option("gui.mcsport.opt.team_size",
                 Component.literal(draft.getTeamSize() + "v" + draft.getTeamSize())));
         difficultyButton.setMessage(option("gui.mcsport.opt.difficulty",
@@ -356,6 +383,8 @@ public class MatchScreen extends Screen {
         awayFormButton.active = !locked;
         homeClubButton.active = !locked;
         awayClubButton.active = !locked;
+        funModeButton.active = !locked;
+        fatigueButton.active = !locked;
         buildButton.active = !locked;
 
         int footerY = height / 2 + 132;

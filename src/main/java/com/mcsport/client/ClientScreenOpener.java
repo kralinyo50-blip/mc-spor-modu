@@ -1,8 +1,10 @@
 package com.mcsport.client;
 
+import com.mcsport.client.screen.AdBoardEditScreen;
 import com.mcsport.client.screen.GuideScreen;
 import com.mcsport.client.screen.MatchScreen;
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.BlockPos;
 
 /**
  * Small indirection so common code can request client screens without
@@ -22,5 +24,9 @@ public final class ClientScreenOpener {
 
     public static void openGuideBook() {
         Minecraft.getInstance().setScreen(new GuideScreen());
+    }
+
+    public static void openAdBoard(BlockPos pos) {
+        Minecraft.getInstance().setScreen(new AdBoardEditScreen(pos));
     }
 }

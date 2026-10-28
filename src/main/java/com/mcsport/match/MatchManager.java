@@ -108,6 +108,20 @@ public class MatchManager extends SavedData {
     private boolean ceremonyStarted;
     private int ceremonyTicks;
 
+    // Fun-mode party rotation. Every PARTY_EVENT_INTERVAL ticks one random
+    // short event replaces the previous one; between events play is normal.
+    public enum PartyEvent {
+        NONE, LOW_GRAVITY, SUPER_SHOT, SPEED_BURST
+    }
+
+    private PartyEvent partyEvent = PartyEvent.NONE;
+    private int partyTicks;
+    private static final int PARTY_EVENT_INTERVAL = 600;
+    private static final int PARTY_EVENT_DURATION = 300;
+    private static final double FUN_GRAVITY_FACTOR = 0.45D;
+    private static final double FUN_SHOT_FACTOR = 1.6D;
+    private static final double FUN_SPEED_FACTOR = 1.25D;
+
     // Stable presser (chaser) assignment per team. Without shared state every
     // bot recomputed "am I the closest?" independently, so two nearby bots
     // swapped the role every few ticks and oscillated forward/backward. The
@@ -169,6 +183,7 @@ public class MatchManager extends SavedData {
         if (state != MatchState.RUNNING) {
             return;
         }
+        tickPartyEvents(server);
         if (++tickCounter >= 20) {
             tickCounter = 0;
             if (remainingSeconds > 0) {
@@ -352,6 +367,8 @@ public class MatchManager extends SavedData {
         settings.setAwayClub(incoming.getAwayClub());
         settings.setHomeCustomName(incoming.getHomeCustomName());
         settings.setAwayCustomName(incoming.getAwayCustomName());
+        settings.setFunMode(incoming.getFunMode());
+        settings.setFatigue(incoming.isFatigue());
         if (state == MatchState.IDLE) {
             remainingSeconds = settings.getHalfLengthSeconds();
         }
@@ -477,6 +494,8 @@ public class MatchManager extends SavedData {
         configuredHalfSeconds = 0;
         ceremonyStarted = false;
         ceremonyTicks = 0;
+        partyEvent = PartyEvent.NONE;
+        partyTicks = 0;
         redChaser = null;
         blueChaser = null;
         passRequestUntil.clear();
@@ -1045,6 +1064,80 @@ public class MatchManager extends SavedData {
         setDirty();
     }
 
+    // ------------------------------------------------------------------
+    // Fun-mode modifiers (low gravity, big ball, super shots, party events)
+    // ------------------------------------------------------------------
+
+    /** Gravity multiplier applied to the ball while a match runs. */
+    public double getGravityFactor() {
+        if (settings.getFunMode() == FunMode.LOW_GRAVITY
+                || (settings.getFunMode() == FunMode.PARTY
+                && partyEvent == PartyEvent.LOW_GRAVITY)) {
+            return FUN_GRAVITY_FACTOR;
+        }
+        return 1.0D;
+    }
+
+    /** Speed multiplier for every ball kick while a match runs. */
+    public double getShotFactor() {
+        if (settings.getFunMode() == FunMode.SUPER_SHOT
+                || (settings.getFunMode() == FunMode.PARTY
+                && partyEvent == PartyEvent.SUPER_SHOT)) {
+            return FUN_SHOT_FACTOR;
+        }
+        return 1.0D;
+    }
+
+    /** Movement multiplier bots inherit during a party speed burst. */
+    public double getBotSpeedFactor() {
+        if (settings.getFunMode() == FunMode.PARTY && partyEvent == PartyEvent.SPEED_BURST) {
+            return FUN_SPEED_FACTOR;
+        }
+        return 1.0D;
+    }
+
+    /** True when the oversized ball modifier is selected. */
+    public boolean isBigBall() {
+        return settings.getFunMode() == FunMode.BIG_BALL;
+    }
+
+    private void tickPartyEvents(MinecraftServer server) {
+        if (settings.getFunMode() != FunMode.PARTY) {
+            if (partyEvent != PartyEvent.NONE) {
+                partyEvent = PartyEvent.NONE;
+            }
+            return;
+        }
+        partyTicks++;
+        if (partyTicks < PARTY_EVENT_INTERVAL) {
+            return;
+        }
+        if (partyEvent == PartyEvent.NONE) {
+            PartyEvent[] pool = {PartyEvent.LOW_GRAVITY, PartyEvent.SUPER_SHOT, PartyEvent.SPEED_BURST};
+            partyEvent = pool[server.getTickCount() % pool.length];
+            partyTicks = PARTY_EVENT_INTERVAL;
+            announcePartyEvent(server);
+        } else if (partyTicks >= PARTY_EVENT_INTERVAL + PARTY_EVENT_DURATION) {
+            partyEvent = PartyEvent.NONE;
+            partyTicks = 0;
+            setDirty();
+        }
+    }
+
+    private void announcePartyEvent(MinecraftServer server) {
+        String key = switch (partyEvent) {
+            case LOW_GRAVITY -> "message.mcsport.party_gravity";
+            case SUPER_SHOT -> "message.mcsport.party_super_shot";
+            case SPEED_BURST -> "message.mcsport.party_speed";
+            default -> null;
+        };
+        if (key != null) {
+            server.getPlayerList().broadcastSystemMessage(
+                    Component.translatable(key).withStyle(ChatFormatting.LIGHT_PURPLE), false);
+        }
+        setDirty();
+    }
+
     /**
      * Records the preferred UI language from a client-synced locale code
      * ("tr_tr", "en_us", ...). Anything starting with "tr" picks Turkish,
@@ -1151,6 +1244,8 @@ public class MatchManager extends SavedData {
         tag.putBoolean("SidesSwapped", sidesSwapped);
         tag.putInt("HalfTimeTicks", halfTimeTicks);
         tag.putInt("ConfiguredHalfSeconds", configuredHalfSeconds);
+        tag.putString("PartyEvent", partyEvent.name());
+        tag.putInt("PartyTicks", partyTicks);
         if (fieldCenter != null) {
             tag.putLong("FieldCenter", fieldCenter.asLong());
         }
@@ -1181,6 +1276,8 @@ public class MatchManager extends SavedData {
         value.putByte("AwayClub", (byte) settings.getAwayClub().ordinal());
         value.putString("HomeCustomName", settings.getHomeCustomName());
         value.putString("AwayCustomName", settings.getAwayCustomName());
+        value.putByte("FunMode", (byte) settings.getFunMode().ordinal());
+        value.putBoolean("Fatigue", settings.isFatigue());
         return value;
     }
 
@@ -1203,6 +1300,11 @@ public class MatchManager extends SavedData {
         manager.sidesSwapped = tag.getBoolean("SidesSwapped");
         manager.halfTimeTicks = Math.max(0, tag.getInt("HalfTimeTicks"));
         manager.configuredHalfSeconds = Math.max(0, tag.getInt("ConfiguredHalfSeconds"));
+        if (tag.contains("PartyEvent")) {
+            manager.partyEvent = parseEnum(tag.getString("PartyEvent"),
+                    PartyEvent.class, PartyEvent.NONE);
+            manager.partyTicks = Math.max(0, tag.getInt("PartyTicks"));
+        }
         if (tag.contains("FieldCenter")) {
             manager.fieldCenter = BlockPos.of(tag.getLong("FieldCenter"));
         }
@@ -1243,6 +1345,11 @@ public class MatchManager extends SavedData {
         if (value.contains("AwayCustomName")) {
             target.setAwayCustomName(value.getString("AwayCustomName"));
         }
+        // Older saves predate the fun update; absence keeps OFF / no fatigue.
+        if (value.contains("FunMode")) {
+            target.setFunMode(FunMode.byOrdinal(value.getByte("FunMode")));
+        }
+        target.setFatigue(value.getBoolean("Fatigue"));
     }
 
     private static <E extends Enum<E>> E parseEnum(String name, Class<E> type, E fallback) {

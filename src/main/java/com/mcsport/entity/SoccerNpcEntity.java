@@ -2,6 +2,8 @@ package com.mcsport.entity;
 
 import com.mcsport.entity.ai.NpcPlayGoal;
 import com.mcsport.entity.ai.RefereeGoal;
+import com.mcsport.match.MatchManager;
+import com.mcsport.match.MatchState;
 import com.mcsport.match.Team;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.protocol.Packet;
@@ -77,6 +79,14 @@ public class SoccerNpcEntity extends PathfinderMob {
     private static final EntityDataAccessor<Byte> DATA_WAVE =
             SynchedEntityData.defineId(SoccerNpcEntity.class, EntityDataSerializers.BYTE);
 
+    // Bot fatigue (server-side only). Accumulates once per second while the
+    // fatigue option is on and the match runs; a freshly spawned substitute
+    // starts at zero, which is exactly the "fresh legs" behaviour we want.
+    private float fatigue;
+    private static final float FATIGUE_PER_SECOND = 0.008F;
+    private static final float FATIGUE_MAX = 0.35F;
+    private static final float MIN_SPEED_FACTOR = 1.0F - FATIGUE_MAX;
+
     /** Full-time ceremony: wave for this long, then despawn. */
     public static final int WAVE_DURATION_TICKS = 70;
 
@@ -145,7 +155,18 @@ public class SoccerNpcEntity extends PathfinderMob {
             if (getWaveTicks() > 0) {
                 setWaveTicks((byte) (getWaveTicks() - 1));
             }
+            if (tickCount > 0 && tickCount % 20 == 0) {
+                MatchManager manager = MatchManager.get((net.minecraft.server.level.ServerLevel) level());
+                if (manager.getState() == MatchState.RUNNING && manager.getSettings().isFatigue()) {
+                    fatigue = Math.min(FATIGUE_MAX, fatigue + FATIGUE_PER_SECOND);
+                }
+            }
         }
+    }
+
+    /** Movement multiplier in [0.65, 1.0] driven by accumulated fatigue. */
+    public float getFatigueMultiplier() {
+        return Math.max(MIN_SPEED_FACTOR, 1.0F - fatigue);
     }
 
     public static AttributeSupplier.Builder createAttributes() {

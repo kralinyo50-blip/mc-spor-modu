@@ -166,5 +166,21 @@
   "guide.mcsport.p9.title": "Half time",
   "guide.mcsport.p9.body": "Matches now have two halves. When the\nfirst half ends, a 10-second break\nbegins; the squads regroup, swap sides\nand the second half kicks off. The\nscore and clock show on the HUD and\nlive scoreboard block.",
   "guide.mcsport.p10.title": "Your own club",
-  "guide.mcsport.p10.body": "Name the sides yourself:\n/mcsport clubname home <name>\n/mcsport clubname away <name>\nUse clubname clear to reset.\nCustom names appear on the board, the\nsetup screen and throughout the match."
+  "guide.mcsport.p10.body": "Name the sides yourself:\n/mcsport clubname home <name>\n/mcsport clubname away <name>\nUse clubname clear to reset.\nCustom names appear on the board, the\nsetup screen and throughout the match.",
+  "fun_mode.mcsport.off": "Off",
+  "fun_mode.mcsport.low_gravity": "Low Gravity",
+  "fun_mode.mcsport.big_ball": "Big Ball",
+  "fun_mode.mcsport.super_shot": "Super Shot",
+  "fun_mode.mcsport.party": "Party Mode",
+  "gui.mcsport.opt.fun_mode": "Fun mode",
+  "gui.mcsport.opt.fatigue": "Bot fatigue",
+  "gui.mcsport.opt.on": "On",
+  "gui.mcsport.opt.off": "Off",
+  "message.mcsport.party_gravity": "Party event: low gravity!",
+  "message.mcsport.party_super_shot": "Party event: super shots!",
+  "message.mcsport.party_speed": "Party event: bot speed burst!",
+  "block.mcsport.ad_board": "Advertising Board",
+  "screen.mcsport.ad_board.title": "Edit Advertising Board",
+  "screen.mcsport.ad_board.text": "Board text",
+  "screen.mcsport.ad_board.save": "Save"
 }
