@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " G ",
+    "GGG",
+    " S "
+  ],
+  "key": {
+    "G": {
+      "item": "minecraft:gold_ingot"
+    },
+    "S": {
+      "item": "minecraft:quartz_block"
+    }
+  },
+  "result": {
+    "item": "mcsport:trophy_block",
+    "count": 1
+  }
+}

@@ -16,12 +16,14 @@ import net.minecraft.world.level.block.state.BlockState;
 /**
  * Server-driven scoreboard panel. Once per second it snapshots the match
  * manager and, only when the displayed content actually changes, pushes the
- * new strings to every client through the block entity update packet. The
- * client-side renderer draws the cached strings; no match logic runs here.
+ * new strings to every client through the block entity update packet. Club kit
+ * colours travel with the same packet so the client renderer can tint each
+ * team name without running any match logic itself.
  */
 public class ScoreboardBlockEntity extends BlockEntity {
 
     private static final int SYNC_INTERVAL_TICKS = 20;
+    private static final int DEFAULT_COLOR = 0xFFFFFFFF;
 
     private String redName = "";
     private String blueName = "";
@@ -29,6 +31,8 @@ public class ScoreboardBlockEntity extends BlockEntity {
     private int blueScore;
     private String clock = "00:00";
     private String stateKey = "";
+    private int redColor = DEFAULT_COLOR;
+    private int blueColor = DEFAULT_COLOR;
     private int tickCounter;
 
     public ScoreboardBlockEntity(BlockPos pos, BlockState state) {
@@ -49,9 +53,12 @@ public class ScoreboardBlockEntity extends BlockEntity {
         String newBlue = manager.getSettings().awayDisplayName().getString();
         String newClock = formatClock(manager.getRemainingSeconds());
         String newState = manager.getState().translationKey();
+        int newRedColor = 0xFF000000 | manager.getSettings().getHomeClub().getKitColor();
+        int newBlueColor = 0xFF000000 | manager.getSettings().getAwayClub().getKitColor();
         if (manager.getRedScore() == redScore && manager.getBlueScore() == blueScore
                 && newRed.equals(redName) && newBlue.equals(blueName)
-                && newClock.equals(clock) && newState.equals(stateKey)) {
+                && newClock.equals(clock) && newState.equals(stateKey)
+                && newRedColor == redColor && newBlueColor == blueColor) {
             return;
         }
         redName = newRed;
@@ -60,6 +67,8 @@ public class ScoreboardBlockEntity extends BlockEntity {
         blueScore = manager.getBlueScore();
         clock = newClock;
         stateKey = newState;
+        redColor = newRedColor;
+        blueColor = newBlueColor;
         setChanged();
         level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
     }
@@ -93,6 +102,14 @@ public class ScoreboardBlockEntity extends BlockEntity {
         return stateKey;
     }
 
+    public int getRedColor() {
+        return redColor;
+    }
+
+    public int getBlueColor() {
+        return blueColor;
+    }
+
     public boolean hasContent() {
         return !stateKey.isEmpty();
     }
@@ -106,6 +123,8 @@ public class ScoreboardBlockEntity extends BlockEntity {
         tag.putInt("BlueScore", blueScore);
         tag.putString("Clock", clock);
         tag.putString("StateKey", stateKey);
+        tag.putInt("RedColor", redColor);
+        tag.putInt("BlueColor", blueColor);
     }
 
     @Override
@@ -117,6 +136,8 @@ public class ScoreboardBlockEntity extends BlockEntity {
         blueScore = tag.getInt("BlueScore");
         clock = tag.getString("Clock");
         stateKey = tag.getString("StateKey");
+        redColor = tag.contains("RedColor") ? tag.getInt("RedColor") : DEFAULT_COLOR;
+        blueColor = tag.contains("BlueColor") ? tag.getInt("BlueColor") : DEFAULT_COLOR;
     }
 
     @Override
@@ -134,5 +155,10 @@ public class ScoreboardBlockEntity extends BlockEntity {
     /** State keys the renderer colours differently. */
     public boolean isFinished() {
         return MatchState.FINISHED.translationKey().equals(stateKey);
+    }
+
+    /** No match has been played yet, so the panel shows its standby screen. */
+    public boolean isIdle() {
+        return stateKey.isEmpty();
     }
 }

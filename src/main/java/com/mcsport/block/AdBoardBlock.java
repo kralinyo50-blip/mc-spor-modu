@@ -2,8 +2,10 @@ package com.mcsport.block;
 
 import com.mcsport.blockentity.AdBoardBlockEntity;
 import com.mcsport.client.ClientScreenOpener;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
@@ -28,15 +30,18 @@ import net.minecraftforge.fml.DistExecutor;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Thin stadium advertising panel. Right-click opens a text entry screen on
- * the client; the typed text travels over a validated op-gated packet and is
- * stored by {@link AdBoardBlockEntity}. No ticker is needed: updates are
- * event-driven through the block entity sync packet.
+ * Double-sided stadium LED advertising panel. Right-click opens a text entry
+ * screen on the client; the typed text travels over a validated, operator-gated
+ * packet and is stored by {@link AdBoardBlockEntity}. Both faces of the panel
+ * display the same scrolling message, so the board reads correctly from either
+ * side of the pitch. No ticker is needed: updates are event-driven through the
+ * block entity sync packet.
  */
 public class AdBoardBlock extends HorizontalDirectionalBlock implements EntityBlock {
 
-    private static final VoxelShape NORTH_SOUTH = Block.box(1.0D, 2.0D, 6.0D, 15.0D, 14.0D, 10.0D);
-    private static final VoxelShape EAST_WEST = Block.box(6.0D, 2.0D, 1.0D, 10.0D, 14.0D, 15.0D);
+    /** Panel body incl. the supporting plinth; thin along the facing axis. */
+    private static final VoxelShape NORTH_SOUTH = Block.box(1.0D, 0.0D, 5.0D, 15.0D, 16.0D, 11.0D);
+    private static final VoxelShape EAST_WEST = Block.box(5.0D, 0.0D, 1.0D, 11.0D, 16.0D, 15.0D);
 
     public AdBoardBlock(Properties properties) {
         super(properties);
@@ -70,9 +75,16 @@ public class AdBoardBlock extends HorizontalDirectionalBlock implements EntityBl
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player,
                                  InteractionHand hand, BlockHitResult hit) {
         if (level.isClientSide) {
+            // The screen reads the current text and shows whether this player
+            // may save; the packet handler re-checks permissions server side.
             DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
                     () -> () -> ClientScreenOpener.openAdBoard(pos));
             return InteractionResult.SUCCESS;
+        }
+        if (!player.hasPermissions(2)) {
+            player.displayClientMessage(
+                    Component.translatable("message.mcsport.ad_board.no_permission")
+                            .withStyle(ChatFormatting.GOLD), true);
         }
         return InteractionResult.CONSUME;
     }

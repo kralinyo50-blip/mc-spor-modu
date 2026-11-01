@@ -9,6 +9,7 @@ import com.mcsport.block.GoalPostBlock;
 import com.mcsport.block.ScoreboardBlock;
 import com.mcsport.block.SeatBlock;
 import com.mcsport.block.SoccerGoalBlock;
+import com.mcsport.block.TrophyBlock;
 import com.mcsport.match.Club;
 import com.mcsport.match.Team;
 import net.minecraft.world.level.block.Block;
@@ -143,7 +144,7 @@ public class ModBlocks {
                     .lightLevel(state -> 15)));
 
     public static final RegistryObject<Block> TROPHY_BLOCK = BLOCKS.register("trophy_block",
-            () -> new Block(BlockBehaviour.Properties.of()
+            () -> new TrophyBlock(BlockBehaviour.Properties.of()
                     .mapColor(MapColor.GOLD)
                     .strength(1.2F)
                     .sound(SoundType.METAL)

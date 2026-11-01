@@ -414,7 +414,8 @@ CURATED_METHODS = {
         "net.minecraft.network.chat.MutableComponent withStyle(java.lang.Object a0, java.lang.Object a1)"],
     "Vec3": ["float dot(net.minecraft.world.phys.Vec3 a0)"],
     "CommandSourceStack": ["void sendSuccess(java.util.function.Supplier a0, boolean a1)"],
-    "Font": ["int width(net.minecraft.network.chat.Component a0)"],
+    "Font": ["int width(net.minecraft.network.chat.Component a0)",
+             "int width(java.lang.String a0)"],
     "GsonHelper": ["static int getAsInt(com.google.gson.JsonObject a0, String a1, int a2)"],
     "FMLCommonSetupEvent": ["void enqueueWork(java.lang.Runnable a0)"],
     "FMLClientSetupEvent": ["void enqueueWork(java.lang.Runnable a0)"],
@@ -425,6 +426,15 @@ CURATED_METHODS = {
         "void setLookAt(double a0, double a1, double a2)",
         "void setLookAt(net.minecraft.world.entity.Entity a0, float a1, float a2)"],
     "Direction": ["net.minecraft.core.Direction getOpposite()"],
+    "BlockEntity": ["net.minecraft.world.level.Level getLevel()"],
+    "Level": ["long getGameTime()"],
+    "Player": ["boolean hasPermissions(int a0)"],
+    "Shapes": ["static net.minecraft.world.phys.shapes.VoxelShape or("
+               "net.minecraft.world.phys.shapes.VoxelShape a0, "
+               "net.minecraft.world.phys.shapes.VoxelShape... rest)"],
+    "GuiGraphics": [
+        "int drawString(net.minecraft.client.gui.Font a0, "
+        "net.minecraft.network.chat.Component a1, int a2, int a3, int a4, boolean a5)"],
     "Rotation": [
         "net.minecraft.world.level.block.state.BlockState rotate(net.minecraft.world.level.block.state.BlockState a0)"],
     "Mirror": [
@@ -572,7 +582,10 @@ CURATED_FIELDS = {
                   ("float", "x"), ("float", "y"), ("float", "z")],
     "Entity": [("net.minecraft.util.RandomSource", "random")],
     "Minecraft": [("net.minecraft.client.gui.Font", "font"),
-                  ("net.minecraft.client.Options", "options")],
+                  ("net.minecraft.client.Options", "options"),
+                  # Minecraft#level is Level on 1.20.1; AdBoardEditScreen reads
+                  # the client block entity through it.
+                  ("net.minecraft.world.level.Level", "level")],
     # languageCode is the plain public String field on 1.20.1 Options that
     # holds the selected locale code (e.g. "tr_tr"); read by ClientLanguageSync.
     "Options": [("boolean", "hideGui"),
@@ -602,6 +615,8 @@ CURATED_STATIC_FIELDS = {
     "MinecraftForge": [
         ("net.minecraftforge.eventbus.api.IEventBus", "EVENT_BUS")],
     "OverlayTexture": [("int", "NO_OVERLAY")],
+    "Blocks": [("net.minecraft.world.level.block.Block", "POLISHED_ANDESITE")],
+    "Direction": [("net.minecraft.core.Direction", "WEST")],
 }
 
 # Functional interfaces (FQN -> full abstract-method declaration) used as
@@ -1738,6 +1753,9 @@ def force_block_entity_renderer_contract():
             "public interface BlockEntityRenderer<T0> {\n"
             "    void render(T0 a0, float a1, com.mojang.blaze3d.vertex.PoseStack a2,\n"
             "                 net.minecraft.client.renderer.MultiBufferSource a3, int a4, int a5);\n"
+            "\n"
+            "    // Real 1.20.1 API: default int getViewDistance() { return 64; }\n"
+            "    default int getViewDistance() { return 64; }\n"
             "}\n")
     provider = os.path.join(ber_dir, "BlockEntityRendererProvider.java")
     if os.path.exists(provider):

@@ -21,9 +21,9 @@ import net.minecraftforge.network.simple.SimpleChannel;
  */
 public final class ModNetwork {
 
-    // "8" adds fun mode, bot fatigue and the ad-board text packet; client
-    // and server accept only this exact version.
-    private static final String PROTOCOL_VERSION = "8";
+    // "9" adds the directional scoreboard panel and the reworked ad-board
+    // renderer; client and server accept only this exact version.
+    private static final String PROTOCOL_VERSION = "9";
 
     public static SimpleChannel CHANNEL;
 

@@ -1,7 +1,20 @@
 {
   "variants": {
-    "": {
-      "model": "mcsport:block/scoreboard"
+    "facing=north": {
+      "model": "mcsport:block/scoreboard",
+      "y": 0
+    },
+    "facing=east": {
+      "model": "mcsport:block/scoreboard",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "mcsport:block/scoreboard",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "mcsport:block/scoreboard",
+      "y": 270
     }
   }
 }

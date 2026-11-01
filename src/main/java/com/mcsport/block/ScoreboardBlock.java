@@ -7,6 +7,7 @@ import com.mcsport.match.Team;
 import com.mcsport.registry.ModBlockEntities;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
@@ -16,33 +17,53 @@ import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
+import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Stadium scoreboard block. Right-click reads the current server-authoritative
- * match score and prints it to the player's action bar, so spectators can
- * check the score without opening the setup GUI. The block entity renders the
- * same live score on the board for every nearby client.
+ * Stadium scoreboard block. The panel is directional, so a board can be aimed
+ * at the pitch (the auto-built stadium mounts it on the sideline facing west).
+ * Right-click prints the current server-authoritative score to the player's
+ * action bar; the block entity paints the same live score on the panel for
+ * every nearby client.
  */
-public class ScoreboardBlock extends Block implements EntityBlock {
+public class ScoreboardBlock extends HorizontalDirectionalBlock implements EntityBlock {
 
-    private static final VoxelShape SHAPE = Block.box(1.0D, 0.0D, 6.0D, 15.0D, 14.0D, 10.0D);
+    private static final VoxelShape NORTH_SOUTH = Block.box(1.0D, 0.0D, 5.0D, 15.0D, 16.0D, 11.0D);
+    private static final VoxelShape EAST_WEST = Block.box(5.0D, 0.0D, 1.0D, 11.0D, 16.0D, 15.0D);
 
     public ScoreboardBlock(Properties properties) {
         super(properties);
+        registerDefaultState(stateDefinition.any()
+                .setValue(BlockStateProperties.HORIZONTAL_FACING, Direction.NORTH));
+    }
+
+    @Override
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+        builder.add(BlockStateProperties.HORIZONTAL_FACING);
+    }
+
+    @Override
+    public BlockState getStateForPlacement(BlockPlaceContext context) {
+        return defaultBlockState().setValue(BlockStateProperties.HORIZONTAL_FACING,
+                context.getHorizontalDirection().getOpposite());
     }
 
     @Override
     public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
-        return SHAPE;
+        Direction facing = state.getValue(BlockStateProperties.HORIZONTAL_FACING);
+        return facing.getAxis() == Direction.Axis.X ? EAST_WEST : NORTH_SOUTH;
     }
 
     @Override
