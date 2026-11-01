@@ -182,5 +182,10 @@
   "block.mcsport.ad_board": "Advertising Board",
   "screen.mcsport.ad_board.title": "Edit Advertising Board",
   "screen.mcsport.ad_board.text": "Board text",
-  "screen.mcsport.ad_board.save": "Save"
+  "screen.mcsport.ad_board.save": "Save",
+  "message.mcsport.ad_board.no_permission": "Only operators (permission level 2) can edit this board",
+  "screen.mcsport.ad_board.hint": "Up to 48 characters - long text scrolls across the panel",
+  "screen.mcsport.ad_board.counter": "%1$s / %2$s characters",
+  "screen.mcsport.ad_board.clear": "Clear",
+  "message.mcsport.scoreboard_idle": "Waiting for kick-off"
 }

@@ -335,10 +335,32 @@ public final class FieldBuilder {
             count += buildTrophy(level, center, halfW, halfL, groundY, playY);
         }
         if (size.hasFeature(FieldFeatures.SCOREBOARD)) {
-            int offset = TRACK_WIDTH + size.getStandRows() + 1;
-            BlockPos scoreboardPos = new BlockPos(center.getX() + halfW + offset, playY, center.getZ());
-            count += placeIfReplaceable(level, scoreboardPos, ModBlocks.SCOREBOARD.get().defaultBlockState());
+            count += buildScoreboard(level, center, halfW, playY, size);
         }
+        return count;
+    }
+
+    /**
+     * Sideline scoreboard tower. The panel is mounted one block above the top
+     * stand row and one block behind it, i.e. in the gap between the terraces
+     * and the perimeter wall, and always faces west — straight at the pitch.
+     * Sitting above the seating keeps the live score readable from the field
+     * instead of being hidden behind the front rows. Tiers without side stands
+     * simply get a taller support mast.
+     */
+    private static int buildScoreboard(ServerLevel level, BlockPos center, int halfW,
+                                       int playY, FieldSize size) {
+        int count = 0;
+        int rows = Math.max(0, size.getStandRows());
+        int boardX = center.getX() + halfW + TRACK_WIDTH + rows + 1;
+        int boardY = playY + Math.max(2, rows + 1);
+        BlockState mast = Blocks.POLISHED_ANDESITE.defaultBlockState();
+        for (int y = playY; y < boardY; y++) {
+            count += placeIfReplaceable(level, new BlockPos(boardX, y, center.getZ()), mast);
+        }
+        count += placeIfReplaceable(level, new BlockPos(boardX, boardY, center.getZ()),
+                ModBlocks.SCOREBOARD.get().defaultBlockState()
+                        .setValue(BlockStateProperties.HORIZONTAL_FACING, Direction.WEST));
         return count;
     }
 

@@ -291,27 +291,96 @@ def block_seats():
     save(seat((44, 86, 196)), "block/blue_seat.png")
 
 
-def scoreboard():
+def panel_frame(base, bevel_light, bevel_dark, rivet, accent=None):
+    """16x16 brushed-metal frame: bright top/left bevel, dark bottom/right."""
     img = Image.new("RGB", (16, 16))
     px = img.load()
-    frame = (96, 64, 30)
-    board = (24, 26, 32)
     for x in range(16):
         for y in range(16):
-            px[x, y] = noise(frame, 5)
-    for x in range(2, 14):
-        for y in range(2, 14):
-            px[x, y] = noise(board, 4)
-    # Digit-like score marks in amber.
-    amber = (240, 188, 60)
-    for x, y in [(5, 5), (5, 6), (5, 7), (6, 8), (10, 5), (10, 6), (10, 7), (9, 8)]:
-        px[x, y] = amber
-    # Centre colon.
-    px[7, 6] = amber
-    px[8, 6] = amber
-    px[7, 9] = amber
-    px[8, 9] = amber
-    save(img, "block/scoreboard.png")
+            px[x, y] = noise(base, 5)
+    for i in range(16):
+        px[i, 0] = bevel_light
+        px[0, i] = tuple(int(c * 0.88) for c in bevel_light)
+        px[i, 15] = bevel_dark
+        px[15, i] = tuple(min(255, int(c * 1.12)) for c in bevel_dark)
+    # Brushed horizontal streaks.
+    for y in range(2, 14, 3):
+        for x in range(2, 14):
+            c = px[x, y]
+            px[x, y] = (min(255, c[0] + 12), min(255, c[1] + 13), min(255, c[2] + 15))
+    # Corner rivets.
+    for rx, ry in [(2, 2), (13, 2), (2, 13), (13, 13)]:
+        px[rx, ry] = rivet
+        px[rx + 1 if rx < 8 else rx - 1, ry] = tuple(int(c * 0.55) for c in rivet)
+    if accent is not None:
+        for x in range(2, 14):
+            px[x, 14] = accent
+    return img
+
+
+def led_screen(base, edge):
+    """16x16 dark LED face: subtle scanlines plus a glowing inner border."""
+    img = Image.new("RGB", (16, 16))
+    px = img.load()
+    for x in range(16):
+        for y in range(16):
+            level = base if y % 2 == 0 else base + 4
+            px[x, y] = noise((level, level + 3, level + 8), 2)
+    for i in range(1, 15):
+        px[i, 0] = edge
+        px[i, 15] = tuple(int(c * 0.75) for c in edge)
+        px[0, i] = tuple(int(c * 0.9) for c in edge)
+        px[15, i] = tuple(int(c * 0.9) for c in edge)
+    for cx, cy in [(1, 1), (14, 1), (1, 14), (14, 14)]:
+        px[cx, cy] = tuple(int(c * 0.5) for c in edge)
+    return img
+
+
+def advertising_board():
+    save(panel_frame((74, 82, 96), (128, 138, 156), (44, 50, 62), (176, 188, 206)),
+         "block/ad_board_frame.png")
+    save(led_screen(9, (26, 62, 92)), "block/ad_board_screen.png")
+
+
+def scoreboard():
+    save(panel_frame((62, 68, 80), (116, 124, 140), (36, 41, 51), (168, 178, 196),
+                     accent=(60, 110, 168)),
+         "block/scoreboard_frame.png")
+    save(led_screen(7, (18, 42, 66)), "block/scoreboard_screen.png")
+
+
+def trophy():
+    """Polished gold with a diagonal specular streak, plus veined marble."""
+    gold = Image.new("RGB", (16, 16))
+    px = gold.load()
+    ramp = [(255, 232, 140), (247, 210, 96), (226, 177, 58), (198, 146, 36),
+            (168, 118, 26), (198, 146, 36), (226, 177, 58), (247, 210, 96)]
+    for y in range(16):
+        base = ramp[min(7, y // 2)]
+        for x in range(16):
+            shine = max(0, 10 - abs((x * 2 + y) - 26))
+            px[x, y] = tuple(min(255, v + int(shine * 2.2)) for v in base)
+    save(gold, "block/trophy_gold.png")
+
+    marble = Image.new("RGB", (16, 16))
+    px = marble.load()
+    for x in range(16):
+        for y in range(16):
+            px[x, y] = noise((26, 26, 30), 3)
+    veins = [(1, 4), (2, 5), (3, 5), (4, 6), (5, 7), (6, 7), (7, 8), (8, 9),
+             (9, 10), (10, 10), (11, 11), (12, 12), (13, 13), (14, 13)]
+    for x, y in veins:
+        px[x, y] = (74, 72, 82)
+        if y + 1 < 16:
+            px[x, y + 1] = (48, 47, 56)
+    for x, y in [(3, 11), (4, 11), (5, 10), (6, 10), (7, 9), (8, 9), (9, 8),
+                 (10, 8), (11, 7)]:
+        px[x, y] = (58, 56, 66)
+    for i in range(16):
+        px[i, 0] = (44, 44, 50)
+        px[0, i] = (38, 38, 44)
+        px[i, 15] = (15, 15, 18)
+    save(marble, "block/trophy_base.png")
 
 
 def logo():
@@ -361,7 +430,9 @@ def main():
     card((228, 196, 36), "yellow_card")
     card((208, 40, 40), "red_card")
     block_seats()
+    advertising_board()
     scoreboard()
+    trophy()
     artificial_turf_dark()
     goal_net_texture()
     whistle()

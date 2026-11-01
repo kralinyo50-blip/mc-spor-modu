@@ -182,5 +182,10 @@
   "block.mcsport.ad_board": "Reklam Panosu",
   "screen.mcsport.ad_board.title": "Reklam Panosunu Düzenle",
   "screen.mcsport.ad_board.text": "Pano metni",
-  "screen.mcsport.ad_board.save": "Kaydet"
+  "screen.mcsport.ad_board.save": "Kaydet",
+  "message.mcsport.ad_board.no_permission": "Bu panoyu yalnızca yetkililer (yetki seviyesi 2) düzenleyebilir",
+  "screen.mcsport.ad_board.hint": "En fazla 48 karakter - uzun yazı panoda kayar",
+  "screen.mcsport.ad_board.counter": "%1$s / %2$s karakter",
+  "screen.mcsport.ad_board.clear": "Temizle",
+  "message.mcsport.scoreboard_idle": "Maç başlaması bekleniyor"
 }

@@ -45,6 +45,13 @@ için bkz. [`docs/HIGGSFIELD_PROMPTS.md`](docs/HIGGSFIELD_PROMPTS.md).
 | `mcsport:field_line` | Saha Çizgisi | Halı benzeri ince çizgi bloğu (cutout render) |
 | `mcsport:red_goal` | Kırmızı Kale | Kale ağzı; önündeki bölgeden gol algılar, kırmızı file |
 | `mcsport:blue_goal` | Mavi Kale | Kale ağzı; önündeki bölgeden gol algılar, mavi file |
+| `mcsport:goal_post` / `goal_net` | Kale Direği / File | Direkler ve cutout render'lı ağ |
+| `mcsport:artificial_turf_dark` | Koyu Suni Çim | Çim şeridi deseni için ikinci ton |
+| `mcsport:<renk>_seat` | Koltuk (6 renk) | Tribünlerde oturulabilen koltuk bloğu |
+| `mcsport:scoreboard` | Skor Tabelası | Yönlü LED panel; sahadan okunur, canlı skor + saat + durum yazar |
+| `mcsport:ad_board` | Reklam Panosu | Çift yüzlü LED panel; op'lar 48 karaktere kadar yazı yazar, uzun yazı kayar |
+| `mcsport:trophy_block` | Şampiyonluk Kupası | 3B kupa heykeli (mermer kaide + altın kupa, kulp ve ağız detaylı) |
+| `mcsport:stadium_wall` / `stadium_roof` / `stadium_lamp` | Stadyum Duvarı / Çatısı / Lambası | Kapalı arena kabuğu ve projektör ışığı |
 
 ### Eşyalar
 

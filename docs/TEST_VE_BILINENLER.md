@@ -219,6 +219,17 @@ ve oyun içi çalıştırma **yapılamadı**. Bunun yerine aşağıdaki statik d
 - [ ] Yetkisiz oyuncu maç kontrol / saha kurma paketi gönderince değişiklik olmuyor.
 - [ ] Tüm crafting tarifleri beklenen çıktıyı veriyor; blok kırılınca eşya düşüyor.
 
+### v1.3.0 — stadyum görsel yenilemesi
+
+- [ ] Reklam panosu: sağ tık → ekran açılıyor, yazı kaydediliyor, **iki yüzde** de görünüyor.
+- [ ] 48 karakterden uzun yazı panoda kayıyor, çerçevenin dışına taşmıyor.
+- [ ] 8 bloktan uzaktan gönderilen pano paketi sunucuda yok sayılıyor; op olmayan oyuncu yazamıyor.
+- [ ] Skor tabelası: yerleştirince bakılan yöne dönüyor; otomatik stadyumda tribün üstünde sahaya bakıyor.
+- [ ] Skor tabelası: kulüp renkli adlar, büyük skor, saat + durum; maç yokken bekleme kartı.
+- [ ] Kupa: 3B model, kaideden ağza kadar seçim kutusu, yalnız kaide çarpışması, kırınca eşya düşüyor.
+- [ ] 1.2.0 dünyası açılıyor: eski skor tabelası varsayılan yöne düşüp çalışmaya devam ediyor.
+- [ ] 1.2.0 istemcisiyle bağlanınca protokol uyuşmazlığı uyarısı alınıyor (beklenen).
+
 ## Bilinen sınırlamalar ve tasarım tercihleri
 
 1. **Kale modeli tek bloklu "ağzı açık küp" formunda.** Gerçek çok bloklu bir
